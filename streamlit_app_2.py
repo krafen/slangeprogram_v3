@@ -20,14 +20,12 @@ import core
 import base64
 
 
-
-
 def get_base64_of_bin_file(bin_file):
     with open(bin_file, 'rb') as f:
         data = f.read()
     return base64.b64encode(data).decode()
 
-img_base64 = get_base64_of_bin_file("assets/background.png")
+img_base64 = get_base64_of_bin_file("assets/background_1.png")
 
 st.markdown(
     f"""
@@ -64,12 +62,7 @@ st.markdown(
 # CONFIG
 # -------------------------------------------------
 
-st.set_page_config(
-    page_title="Slangeprogram",
-    layout="wide",
-    icon="assets/HP_ikon.ico"
-)
-
+st.set_page_config(page_title="Slangeprogram", layout="wide")
 
 FIRST_FILE = "Slanger_hylser.xlsx"
 SECOND_FILE = "kuplinger_316.xlsx"
