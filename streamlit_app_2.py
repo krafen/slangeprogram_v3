@@ -25,7 +25,12 @@ import base64
 # CONFIG
 # -------------------------------------------------
 
-st.set_page_config(page_title="Slangeprogram", layout="wide")
+st.set_page_config(
+    page_title="Slangeprogram",
+    layout="wide",
+    initial_sidebar_state="expanded",
+    icon="🔧"  # Wrench emoji
+)
 
 FIRST_FILE = "Slanger_hylser.xlsx"
 SECOND_FILE = "kuplinger_316.xlsx"
