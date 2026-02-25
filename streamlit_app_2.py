@@ -23,7 +23,7 @@ import core
 # CONFIG
 # -------------------------------------------------
 
-st.set_page_config(page_title="Slangeprogram", layout="wide", page_icon="assets/HP.ico")
+st.set_page_config(page_title="Slangeprogram", layout="wide", page_icon="assets/HP_icon.ico")
 
 
 FIRST_FILE = "Slanger_hylser.xlsx"
