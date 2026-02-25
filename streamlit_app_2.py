@@ -542,7 +542,7 @@ elif st.session_state.input_mode == "full":
             st.info("Velg kupling fra tabellen")
 
     if st.session_state.selected_c1_row is None or st.session_state.selected_c2_row is None:
-        st.warning("⚠️ Du må velge begge kuplinger")
+        st.warning("⚠️ Du må velge kuplinger i begge ender")
         st.stop()
 
     row_c1 = st.session_state.selected_c1_row
