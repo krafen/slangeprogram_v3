@@ -18,7 +18,7 @@ import base64
 import core
 
 import base64
-
+"""
 def get_base64_of_bin_file(bin_file):
     with open(bin_file, 'rb') as f:
         data = f.read()
@@ -56,7 +56,7 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-
+"""
 # -------------------------------------------------
 # CONFIG
 # -------------------------------------------------
