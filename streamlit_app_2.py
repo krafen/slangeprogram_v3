@@ -241,11 +241,21 @@ def generate_excel():
 
 st.title("🔧 Slangeprogram")
 
+# Mode selection with simpler logic
 col1, col2 = st.columns(2)
 with col1:
-    mode = st.radio("Innføringmodus", ["Skriv inn slangebeskrivelse", "Velg slange og kuplinger"], 
-                    index=0 if st.session_state.input_mode == "quick" else 1)
-    st.session_state.input_mode = "quick" if mode == "Rask innføring" else "full"
+    mode_choice = st.radio(
+        "Innføringmodus",
+        options=["Rask innføring", "Full dialog"],
+        index=0,
+        key="mode_radio"
+    )
+
+# Update session state based on selection
+if mode_choice == "Rask innføring":
+    st.session_state.input_mode = "quick"
+else:
+    st.session_state.input_mode = "full"
 
 
 # -------------------------------------------------
@@ -258,7 +268,7 @@ if st.session_state.input_mode == "quick":
     col1, col2 = st.columns([2, 1])
 
     with col1:
-        first_line = st.text_input("Første utdata-linje", placeholder="Del1/Lengde/Del2/Del3[/Vinkel°]")
+        first_line = st.text_input("Første utdata-linje", placeholder="Del1/Lengde/Del2/Del3[/Vinkel°]", key="quick_first_line")
 
     with col2:
         material = st.selectbox("Materiale", ["stål", "syrefast"], key="quick_material")
@@ -323,10 +333,13 @@ if st.session_state.input_mode == "quick":
             )
 
             st.success(f"✅ Slange lagt til! ({len(st.session_state.output_rows)} rader)")
+
+
 # -------------------------------------------------
 # FULL MODE
 # -------------------------------------------------
 
+elif st.session_state.input_mode == "full":
 else:
     st.header("📝 Velg Slange og Kuplinger")
 
