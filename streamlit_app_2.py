@@ -23,8 +23,7 @@ import base64
 st.set_page_config(
     page_title="Slangeprogram",
     layout="wide",
-    initial_sidebar_state="expanded",
-    icon="🔧"  # Wrench emoji
+    icon="assets/HP_ikon.ico"
 )
 
 def get_base64_of_bin_file(bin_file):
