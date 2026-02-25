@@ -24,7 +24,13 @@ import core
 # -------------------------------------------------
 
 st.set_page_config(page_title="Slangeprogram", layout="wide", page_icon="assets/HP.ico")
-
+st.markdown("""
+    <style>
+    .stApp {
+        background-color: #0E1117;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
 FIRST_FILE = "Slanger_hylser.xlsx"
 SECOND_FILE = "kuplinger_316.xlsx"
