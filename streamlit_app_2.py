@@ -15,9 +15,7 @@ import os
 import base64
 
 
-import core
 
-import base64
 
 
 
@@ -31,7 +29,7 @@ def get_base64_of_bin_file(bin_file):
         data = f.read()
     return base64.b64encode(data).decode()
 
-img_base64 = get_base64_of_bin_file("assets/background_2.png")
+img_base64 = get_base64_of_bin_file("assets/background_2.jpg")
 
 st.markdown(
     f"""
