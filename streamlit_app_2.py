@@ -252,7 +252,7 @@ with col1:
     )
 
 # Update session state based on selection
-if mode_choice == "Rask innføring":
+if mode_choice == "Skriv inn Slangebeskrivelse":
     st.session_state.input_mode = "quick"
 else:
     st.session_state.input_mode = "full"
