@@ -20,11 +20,7 @@ import core
 import base64
 
 
-st.set_page_config(
-    page_title="Slangeprogram",
-    layout="wide",
-    icon="assets/HP_ikon.ico"
-)
+
 
 def get_base64_of_bin_file(bin_file):
     with open(bin_file, 'rb') as f:
@@ -68,7 +64,12 @@ st.markdown(
 # CONFIG
 # -------------------------------------------------
 
-st.set_page_config(page_title="Slangeprogram", layout="wide")
+st.set_page_config(
+    page_title="Slangeprogram",
+    layout="wide",
+    icon="assets/HP_ikon.ico"
+)
+
 
 FIRST_FILE = "Slanger_hylser.xlsx"
 SECOND_FILE = "kuplinger_316.xlsx"
