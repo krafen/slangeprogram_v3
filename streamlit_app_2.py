@@ -238,7 +238,7 @@ st.title("🔧 Slangeprogram")
 
 col1, col2 = st.columns(2)
 with col1:
-    mode = st.radio("Innføringmodus", ["Rask innføring", "Full dialog"], 
+    mode = st.radio("Innføringmodus", ["Skriv inn slangebeskrivelse", "Velg slange og kuplinger"], 
                     index=0 if st.session_state.input_mode == "quick" else 1)
     st.session_state.input_mode = "quick" if mode == "Rask innføring" else "full"
 
@@ -325,13 +325,41 @@ if st.session_state.input_mode == "quick":
 # -------------------------------------------------
 
 else:
-    st.header("📝 Valg av slange og kuplinger")
+    st.header("📝 Full dialog")
 
     st.subheader("1️⃣ Velg slange")
 
+    # Type Approval FIRST - before search and table
+    col1, col2 = st.columns([2, 1])
+    with col1:
+        pass  # spacer
+    with col2:
+        type_approval = st.checkbox("Type Approval (DNV)?", key="full_type_approval")
+
+    # Search hose
     search = st.text_input("Søk i slange beskrivelse", key="full_search")
 
+    # Filter by Type Approval if checked
     filtered_df = df1.copy()
+    
+    if type_approval:
+        # Filter for DNV only
+        dnv_col = None
+        for cname in filtered_df.columns:
+            if "DNV" in cname or "Type Approval" in cname:
+                dnv_col = cname
+                break
+        
+        if dnv_col is not None:
+            filtered_df = filtered_df[filtered_df[dnv_col].astype(str).str.contains("DNV", na=False)]
+        else:
+            # Fallback: try column index 9 (common location for DNV column)
+            try:
+                filtered_df = filtered_df[filtered_df.iloc[:, 9].astype(str).str.contains("DNV", na=False)]
+            except:
+                pass
+
+    # Apply search filter
     if search:
         filtered_df = filtered_df[
             filtered_df["Beskrivelse_2"]
@@ -349,11 +377,13 @@ else:
         key="hose_table"
     )
 
+    # Check if row was selected
     if event.selection and event.selection["rows"]:
         selected_idx = event.selection["rows"][0]
         selected_prod_no = filtered_df.iloc[selected_idx]["Prod.no"]
         st.session_state.selected_hose_row = df1[df1["Prod.no"] == selected_prod_no].iloc[0]
 
+    # Manual selection fallback
     if st.session_state.selected_hose_row is None:
         selected_prod_no = st.selectbox(
             "Eller velg slange (Prod.no)",
@@ -365,6 +395,7 @@ else:
     selected_row = st.session_state.selected_hose_row
     st.success(f"✅ Valgt: {selected_row['Beskrivelse_2']}")
 
+    # Options (moved AFTER selection)
     col1, col2, col3 = st.columns(3)
 
     with col1:
@@ -374,10 +405,11 @@ else:
         material = st.selectbox("Materiale", ["stål", "syrefast"], key="full_material")
 
     with col3:
-        type_approval = st.checkbox("Type Approval (DNV)?", key="full_type_approval")
+        st.write("")  # spacer
 
     size = str(selected_row["Dimensjon"]).zfill(2)
 
+    # Determine sheet_name based on type approval and material
     if material == "syrefast":
         try:
             slange_hylse_df = core.clean_columns(pd.read_excel(FIRST_FILE, sheet_name="Slange+Hylse"))
@@ -393,10 +425,11 @@ else:
                 sheet_name = f"Kuplinger {size}(316)"
         except:
             sheet_name = f"Kuplinger {size}(316)"
-    else:
+    else:  # stål
         type_approval_val = type_approval
         gates_in_k = False
         
+        # Check for Type Approval with Gates in column K
         if type_approval_val:
             try:
                 slange_hylse_df = core.clean_columns(pd.read_excel(FIRST_FILE, sheet_name="Slange+Hylse"))
@@ -409,6 +442,7 @@ else:
             except:
                 pass
         
+        # Determine sheet key
         if type_approval_val and gates_in_k:
             sheet_key = "(M-st)"
             sheet_name = f"Kuplinger {size}(M-st)"
@@ -428,6 +462,10 @@ else:
 
     df2 = df2_all[sheet_name]
     st.session_state.full_df2 = df2
+
+    # -------------------------------------------------
+    # COUPLINGS
+    # -------------------------------------------------
 
     st.divider()
     st.subheader("2️⃣ Velg kuplinger")
@@ -485,6 +523,10 @@ else:
     row_c1 = st.session_state.selected_c1_row
     row_c2 = st.session_state.selected_c2_row
 
+    # -------------------------------------------------
+    # ADDITIONAL OPTIONS
+    # -------------------------------------------------
+
     st.divider()
     st.subheader("3️⃣ Innstillinger")
 
@@ -507,6 +549,7 @@ else:
     else:
         posnr = ""
 
+    # Pressure test
     st.divider()
     pressure_test = st.checkbox("Skal slangen trykkteststes?", key="full_pressure_test")
 
@@ -529,6 +572,7 @@ else:
             pressure_details["hydra_ordre_nr"] = st.text_input("Hydra Pipe ordre nr.", key="full_hydra_ordre")
             pressure_details["kundes_del_nr"] = st.text_input("Kundes del nr.", key="full_del_nr")
 
+    # Add to order
     if st.button("✅ Legg til slange", use_container_width=True, key="full_add_btn"):
         process_and_add_hose(
             selected_row, row_c1, row_c2, sheet_name, size,
@@ -536,12 +580,12 @@ else:
             pressure_details, antall_slanger
         )
 
+        # Reset selections
         st.session_state.selected_hose_row = None
         st.session_state.selected_c1_row = None
         st.session_state.selected_c2_row = None
 
         st.success(f"✅ Slange lagt til! ({len(st.session_state.output_rows)} rader)")
-
 
 # -------------------------------------------------
 # ORDER PREVIEW (Common to both modes)
