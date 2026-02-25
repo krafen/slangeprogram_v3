@@ -248,7 +248,7 @@ col1, col2, col3 = st.columns([1, 2, 1])
 with col2:
     st.image("assets/logo.png", use_column_width=True)
 
-st.title("🇳🇴 Slangeprogram")
+st.title("💎 Slangeprogram")
 
 st.divider()
 # Mode selection
@@ -306,7 +306,7 @@ if st.session_state.input_mode == "quick":
             posnr = ""
 
     st.divider()
-    pressure_test = st.checkbox("Skal slangen trykkteststes?", key="quick_pressure_test")
+    pressure_test = st.checkbox("🚰 Skal slangen trykkteststes?", key="quick_pressure_test")
 
     pressure_details = {
         "kunde": "",
@@ -582,12 +582,12 @@ elif st.session_state.input_mode == "full":
     angle = ""
     if has_angle_c1 and has_angle_c2:
         st.divider()
-        st.subheader("⚙️ Vinkel")
+        st.subheader("📐 Vinkel")
         angle = st.text_input("Skriv inn vinkel", key="full_angle")
 
     # Pressure test
     st.divider()
-    pressure_test = st.checkbox("Skal slangen trykkteststes?", key="full_pressure_test")
+    pressure_test = st.checkbox("🚰 Skal slangen trykkteststes?", key="full_pressure_test")
 
     pressure_details = {
         "kunde": "",
