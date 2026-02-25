@@ -26,6 +26,23 @@ import base64
 # -------------------------------------------------
 
 st.set_page_config(page_title="Slangeprogram", layout="wide", page_icon="assets/HP.ico")
+def get_base64(file_path):
+    with open(file_path, "rb") as f:
+        return base64.b64encode(f.read()).decode()
+
+img = get_base64("assets/background_2.png")
+
+st.markdown(f"""
+    <style>
+    .stApp {{
+        background-image: url("data:image/png;base64,{img}");
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+    }}
+    </style>
+""", unsafe_allow_html=True)
 
 FIRST_FILE = "Slanger_hylser.xlsx"
 SECOND_FILE = "kuplinger_316.xlsx"
