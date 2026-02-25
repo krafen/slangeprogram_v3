@@ -11,6 +11,7 @@ import pandas as pd
 import openpyxl
 from datetime import datetime
 import io
+import os
 
 import core
 
@@ -28,17 +29,26 @@ SLUTT_TEMPLATE = "Mal sluttkontroll slanger.xlsx"
 
 
 # -------------------------------------------------
-# LOAD DATA
+# LOAD DATA - WITH ERROR HANDLING
 # -------------------------------------------------
 
 @st.cache_data
 def load_all():
-    df1, df2_all = core.load_main_data(FIRST_FILE, SECOND_FILE)
-    mont_df, trykktest_df, prikling_df = core.load_support_sheets(FIRST_FILE)
-    return df1, df2_all, mont_df, trykktest_df, prikling_df
+    try:
+        df1, df2_all = core.load_main_data(FIRST_FILE, SECOND_FILE)
+        mont_df, trykktest_df, prikling_df = core.load_support_sheets(FIRST_FILE)
+        return df1, df2_all, mont_df, trykktest_df, prikling_df
+    except Exception as e:
+        st.error(f"Feil ved lasting av data: {e}")
+        st.info("Sørg for at Excel-filene er i samme mappe som appen")
+        st.stop()
 
 
-df1, df2_all, mont_df, trykktest_df, prikling_df = load_all()
+try:
+    df1, df2_all, mont_df, trykktest_df, prikling_df = load_all()
+except Exception as e:
+    st.error(f"❌ Kunne ikke laste data: {str(e)}")
+    st.stop()
 
 
 # -------------------------------------------------
@@ -55,7 +65,7 @@ if "pos_counter" not in st.session_state:
     st.session_state.pos_counter = 1
 
 if "input_mode" not in st.session_state:
-    st.session_state.input_mode = "quick"  # "quick" or "full"
+    st.session_state.input_mode = "quick"
 
 if "selected_hose_row" not in st.session_state:
     st.session_state.selected_hose_row = None
@@ -76,11 +86,10 @@ if "full_df2" not in st.session_state:
 
 def process_and_add_hose(selected_row, second_row1, second_row2, sheet_name_found, size_str, 
                         length_int, material, lager, pos_mark, posnr, pressure_test, 
-                        pressure_details, antall_slanger, first_line=""):
+                        pressure_details, antall_slanger, first_line="", angle=""):
     """Process hose data and add to output rows"""
     rows = []
 
-    # Add POS marking if enabled
     if pos_mark and posnr:
         rows.append(["1", f"POS: {posnr}", int(lager), 1])
         try:
@@ -88,17 +97,21 @@ def process_and_add_hose(selected_row, second_row1, second_row2, sheet_name_foun
         except:
             pass
 
-    # Add first line
     if first_line:
+        # Quick mode - just use the first line as-is
         rows.append(["1", first_line, int(lager), 1])
     else:
-        # Build first line from components
+        # Full mode - build first line from components with angle if provided
         part1 = str(selected_row["Beskrivelse"])[:7] if selected_row is not None else ""
         part2 = str(length_int if length_int else "")
         part3 = str(second_row1["Beskrivelse"])[:9 if material == "stål" else 15] if second_row1 is not None else ""
         part4 = str(second_row2["Beskrivelse"])[:9 if material == "stål" else 15] if second_row2 is not None else ""
-        first_line = f"{part1}/{part2}/{part3}/{part4}"
-        rows.append(["1", first_line, int(lager), 1])
+        
+        if angle and angle.strip():
+            first_line_display = f"{part1}/{part2}/{part3}/{part4}/{angle}°"
+        else:
+            first_line_display = f"{part1}/{part2}/{part3}/{part4}"
+        rows.append(["1", first_line_display, int(lager), 1])
 
     # Add products
     if selected_row is not None:
@@ -120,14 +133,12 @@ def process_and_add_hose(selected_row, second_row1, second_row2, sheet_name_foun
     else:
         rows.append(["", "Fant ikke andre kupling", int(lager), 1])
 
-    # Check for GSM
     gsm_count = 0
     if second_row1 is not None and str(second_row1.get("Beskrivelse", "")).startswith("GSM"):
         gsm_count += 1
     if second_row2 is not None and str(second_row2.get("Beskrivelse", "")).startswith("GSM"):
         gsm_count += 1
 
-    # Add material hylse
     if material.lower() == "stål" and selected_row is not None:
         mat_prod = selected_row.get("Stål hylse(Posd.no)", "")
         mat_desc = selected_row.get("Stål hylse(beskrivelse)", "")
@@ -145,12 +156,10 @@ def process_and_add_hose(selected_row, second_row1, second_row2, sheet_name_foun
         stahl_value = 2 if gsm_count == 0 else 1
         rows.append([mat_prod, mat_desc, int(lager), stahl_value])
 
-    # Add mont row
     mont_row = core.get_mont_row(size_str, sheet_key, mont_df)
     if mont_row is not None:
         rows.append([mont_row["Prod.no"], mont_row["Beskrivelse"], int(lager), 1])
 
-    # Add pressure test if selected
     if pressure_test:
         trykktest_row = core.get_trykktest_prodno(size_str, length_int or 1000, trykktest_df)
         if trykktest_row is not None:
@@ -160,14 +169,12 @@ def process_and_add_hose(selected_row, second_row1, second_row2, sheet_name_foun
 
     rows.append(["1", "", int(lager), ""])
 
-    # Apply antall_slanger multiplier
     if antall_slanger and antall_slanger != 1:
         for r in rows:
             core._multiply_row_quantity(r, antall_slanger)
 
     st.session_state.output_rows.extend(rows)
 
-    # Store certificate data
     if pressure_test:
         st.session_state.certificate_data_list.append({
             "selected_row": selected_row,
@@ -177,15 +184,12 @@ def process_and_add_hose(selected_row, second_row1, second_row2, sheet_name_foun
             "material": material,
             "pressure_details": pressure_details
         })
-
-
 def generate_excel():
     """Generate Excel file with all sheets"""
     output_wb = core.create_output_workbook(
         [[r[0], r[1], r[2], r[3]] for r in st.session_state.output_rows]
     )
 
-    # Add Trykktest certificate sheets
     if st.session_state.certificate_data_list:
         for idx, cert_info in enumerate(st.session_state.certificate_data_list, 1):
             try:
@@ -209,7 +213,6 @@ def generate_excel():
             except Exception as e:
                 st.warning(f"Kunne ikke legge til sertifikat {idx}: {e}")
 
-    # Add Sluttkontroll sheet (always)
     try:
         kunde = ""
         hydra_ordre_nr = ""
@@ -226,7 +229,6 @@ def generate_excel():
     except Exception as e:
         st.warning(f"Kunne ikke legge til sluttkontroll: {e}")
 
-    # Save to buffer
     output_buffer = io.BytesIO()
     output_wb.save(output_buffer)
     output_buffer.seek(0)
@@ -239,12 +241,21 @@ def generate_excel():
 
 st.title("🔧 Slangeprogram")
 
-# Mode selection
+# Mode selection with simpler logic
 col1, col2 = st.columns(2)
 with col1:
-    mode = st.radio("Innføringmodus", ["Rask innføring", "Full dialog"], 
-                    index=0 if st.session_state.input_mode == "quick" else 1)
-    st.session_state.input_mode = "quick" if mode == "Rask innføring" else "full"
+    mode_choice = st.radio(
+        "Innføringmodus",
+        options=["Skriv inn Slangebeskrivelse", "Velg Slange og Kuplinger"],
+        index=0,
+        key="mode_radio"
+    )
+
+# Update session state based on selection
+if mode_choice == "Skriv inn Slangebeskrivelse":
+    st.session_state.input_mode = "quick"
+else:
+    st.session_state.input_mode = "full"
 
 
 # -------------------------------------------------
@@ -252,12 +263,12 @@ with col1:
 # -------------------------------------------------
 
 if st.session_state.input_mode == "quick":
-    st.header("➕ Rask innføring")
+    st.header("➕ Skriv in Slangebeskrivelse")
 
     col1, col2 = st.columns([2, 1])
 
     with col1:
-        first_line = st.text_input("Første utdata-linje", placeholder="Del1/Lengde/Del2/Del3[/Vinkel°]")
+        first_line = st.text_input("Første utdata-linje", placeholder="Slange/Lengde/Kupling 1/Kupling 2", key="quick_first_line")
 
     with col2:
         material = st.selectbox("Materiale", ["stål", "syrefast"], key="quick_material")
@@ -276,7 +287,6 @@ if st.session_state.input_mode == "quick":
     with col3:
         type_approval = st.checkbox("Type Approval (DNV)?", key="quick_type_approval")
 
-    # POS marking
     col1, col2 = st.columns([1, 2])
     with col1:
         pos_mark = st.checkbox("Merke med POS.nr?", key="quick_pos_mark")
@@ -286,7 +296,6 @@ if st.session_state.input_mode == "quick":
         else:
             posnr = ""
 
-    # Pressure test section
     st.divider()
     pressure_test = st.checkbox("Skal slangen trykkteststes?", key="quick_pressure_test")
 
@@ -309,12 +318,10 @@ if st.session_state.input_mode == "quick":
             pressure_details["hydra_ordre_nr"] = st.text_input("Hydra Pipe ordre nr.", key="quick_hydra_ordre")
             pressure_details["kundes_del_nr"] = st.text_input("Kundes del nr.", key="quick_del_nr")
 
-    # Process button
     if st.button("✅ Legg til slange", use_container_width=True, key="quick_add_btn"):
         if not first_line:
             st.error("Første utdata-linje må oppgis!")
         else:
-            # Find matches from summary
             selected_row, second_row1, second_row2, sheet_name_found, size_str, length_int = core.find_matches_from_summary(
                 first_line, df1, df2_all, material_pref=material
             )
@@ -322,7 +329,7 @@ if st.session_state.input_mode == "quick":
             process_and_add_hose(
                 selected_row, second_row1, second_row2, sheet_name_found, size_str,
                 length_int, material, lager, pos_mark, posnr, pressure_test,
-                pressure_details, antall_slanger, first_line
+                pressure_details, antall_slanger, first_line=first_line
             )
 
             st.success(f"✅ Slange lagt til! ({len(st.session_state.output_rows)} rader)")
@@ -332,15 +339,43 @@ if st.session_state.input_mode == "quick":
 # FULL MODE
 # -------------------------------------------------
 
-else:
-    st.header("📝 Full dialog")
+elif st.session_state.input_mode == "full":
+
+    st.header("📝 Velg Slange og Kuplinger")
 
     st.subheader("1️⃣ Velg slange")
+
+    # Type Approval FIRST - before search and table
+    col1, col2 = st.columns([2, 1])
+    with col1:
+        pass  # spacer
+    with col2:
+        type_approval = st.checkbox("Type Approval (DNV)?", key="full_type_approval")
 
     # Search hose
     search = st.text_input("Søk i slange beskrivelse", key="full_search")
 
+    # Filter by Type Approval if checked
     filtered_df = df1.copy()
+    
+    if type_approval:
+        # Filter for DNV only
+        dnv_col = None
+        for cname in filtered_df.columns:
+            if "DNV" in cname or "Type Approval" in cname:
+                dnv_col = cname
+                break
+        
+        if dnv_col is not None:
+            filtered_df = filtered_df[filtered_df[dnv_col].astype(str).str.contains("DNV", na=False)]
+        else:
+            # Fallback: try column index 9 (common location for DNV column)
+            try:
+                filtered_df = filtered_df[filtered_df.iloc[:, 9].astype(str).str.contains("DNV", na=False)]
+            except:
+                pass
+
+    # Apply search filter
     if search:
         filtered_df = filtered_df[
             filtered_df["Beskrivelse_2"]
@@ -348,7 +383,6 @@ else:
             .str.contains(search, case=False, na=False)
         ]
 
-    # Display table with selection
     st.write("**Velg slange fra tabellen under:**")
     event = st.dataframe(
         filtered_df[["Prod.no", "Beskrivelse_2", "Dimensjon", "Trykk(bar)"]],
@@ -377,7 +411,7 @@ else:
     selected_row = st.session_state.selected_hose_row
     st.success(f"✅ Valgt: {selected_row['Beskrivelse_2']}")
 
-    # Options
+    # Options (moved AFTER selection)
     col1, col2, col3 = st.columns(3)
 
     with col1:
@@ -387,13 +421,12 @@ else:
         material = st.selectbox("Materiale", ["stål", "syrefast"], key="full_material")
 
     with col3:
-        type_approval = st.checkbox("Type Approval (DNV)?", key="full_type_approval")
+        st.write("")  # spacer
 
     size = str(selected_row["Dimensjon"]).zfill(2)
 
     # Determine sheet_name based on type approval and material
     if material == "syrefast":
-        # Check for type approval with column L
         try:
             slange_hylse_df = core.clean_columns(pd.read_excel(FIRST_FILE, sheet_name="Slange+Hylse"))
             prod_no = selected_row.get("Prod.no")
@@ -506,7 +539,7 @@ else:
     row_c1 = st.session_state.selected_c1_row
     row_c2 = st.session_state.selected_c2_row
 
-    # -------------------------------------------------
+        # -------------------------------------------------
     # ADDITIONAL OPTIONS
     # -------------------------------------------------
 
@@ -532,6 +565,17 @@ else:
     else:
         posnr = ""
 
+    # Check if either coupling has angle (45 or 90)
+    has_angle_c1 = "45" in str(row_c1["Beskrivelse"]) or "90" in str(row_c1["Beskrivelse"])
+    has_angle_c2 = "45" in str(row_c2["Beskrivelse"]) or "90" in str(row_c2["Beskrivelse"])
+    
+    # Show angle input only if one of the couplings has angle
+    angle = ""
+    if has_angle_c1 and has_angle_c2:
+        st.divider()
+        st.subheader("⚙️ Vinkel")
+        angle = st.text_input("Skriv inn vinkel", key="full_angle")
+
     # Pressure test
     st.divider()
     pressure_test = st.checkbox("Skal slangen trykkteststes?", key="full_pressure_test")
@@ -542,7 +586,7 @@ else:
         "hydra_ordre_nr": "",
         "kundes_del_nr": "",
         "antall_slanger": antall_slanger,
-        "angle": ""
+        "angle": angle
     }
 
     if pressure_test:
@@ -555,12 +599,15 @@ else:
             pressure_details["hydra_ordre_nr"] = st.text_input("Hydra Pipe ordre nr.", key="full_hydra_ordre")
             pressure_details["kundes_del_nr"] = st.text_input("Kundes del nr.", key="full_del_nr")
 
-    # Add to order
+        # Add to order
     if st.button("✅ Legg til slange", use_container_width=True, key="full_add_btn"):
+        # Update pressure_details with angle for certificate
+        pressure_details["angle"] = angle
+        
         process_and_add_hose(
             selected_row, row_c1, row_c2, sheet_name, size,
             length, material, lager, pos_mark, posnr, pressure_test,
-            pressure_details, antall_slanger
+            pressure_details, antall_slanger, first_line="", angle=angle
         )
 
         # Reset selections
@@ -569,14 +616,12 @@ else:
         st.session_state.selected_c2_row = None
 
         st.success(f"✅ Slange lagt til! ({len(st.session_state.output_rows)} rader)")
-
-
 # -------------------------------------------------
 # ORDER PREVIEW (Common to both modes)
 # -------------------------------------------------
 
 st.divider()
-st.header("📊 Nåværende utdata")
+st.header("📊 Foreløpig slangestruktur i Visma")
 
 if st.session_state.output_rows:
     output_df = pd.DataFrame(st.session_state.output_rows, columns=["Prod.no", "Beskrivelse", "Lager", "Antall"])
