@@ -253,7 +253,7 @@ if st.session_state.input_mode == "quick":
     col1, col2 = st.columns([2, 1])
 
     with col1:
-        first_line = st.text_input("Første utdata-linje", placeholder="Del1/Lengde/Del2/Del3")
+        first_line = st.text_input("Første utdata-linje", placeholder="Del1/Lengde/Del2/Del3[/Vinkel°]")
 
     with col2:
         material = st.selectbox("Materiale", ["stål", "syrefast"], key="quick_material")
@@ -318,14 +318,12 @@ if st.session_state.input_mode == "quick":
             )
 
             st.success(f"✅ Slange lagt til! ({len(st.session_state.output_rows)} rader)")
-
-
 # -------------------------------------------------
 # FULL MODE
 # -------------------------------------------------
 
 else:
-    st.header("📝 Full dialog")
+    st.header("📝 Foreløpig struktur i Visma")
 
     st.subheader("1️⃣ Velg slange")
 
@@ -523,7 +521,7 @@ else:
     row_c1 = st.session_state.selected_c1_row
     row_c2 = st.session_state.selected_c2_row
 
-    # -------------------------------------------------
+        # -------------------------------------------------
     # ADDITIONAL OPTIONS
     # -------------------------------------------------
 
@@ -549,6 +547,17 @@ else:
     else:
         posnr = ""
 
+    # Check if either coupling has angle (45 or 90)
+    has_angle_c1 = "45" in str(row_c1["Beskrivelse"]) or "90" in str(row_c1["Beskrivelse"])
+    has_angle_c2 = "45" in str(row_c2["Beskrivelse"]) or "90" in str(row_c2["Beskrivelse"])
+    
+    # Show angle input only if one of the couplings has angle
+    angle = ""
+    if has_angle_c1 and has_angle_c2:
+        st.divider()
+        st.subheader("⚙️ Vinkel")
+        angle = st.text_input("Skriv inn vinkel (f.eks. 45 eller 90)", key="full_angle")
+
     # Pressure test
     st.divider()
     pressure_test = st.checkbox("Skal slangen trykkteststes?", key="full_pressure_test")
@@ -559,7 +568,7 @@ else:
         "hydra_ordre_nr": "",
         "kundes_del_nr": "",
         "antall_slanger": antall_slanger,
-        "angle": ""
+        "angle": angle
     }
 
     if pressure_test:
@@ -586,7 +595,6 @@ else:
         st.session_state.selected_c2_row = None
 
         st.success(f"✅ Slange lagt til! ({len(st.session_state.output_rows)} rader)")
-
 # -------------------------------------------------
 # ORDER PREVIEW (Common to both modes)
 # -------------------------------------------------
