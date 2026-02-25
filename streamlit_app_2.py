@@ -19,6 +19,44 @@ import core
 
 import base64
 
+def get_base64_of_bin_file(bin_file):
+    with open(bin_file, 'rb') as f:
+        data = f.read()
+    return base64.b64encode(data).decode()
+
+img_base64 = get_base64_of_bin_file("assets/background.png")
+
+st.markdown(
+    f"""
+    <style>
+        .stApp {{
+            background-image: url(data:image/png;base64,{img_base64});
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }}
+        
+        /* Overlay to darken image and improve text readability */
+        .stApp::before {{
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: -1;
+        }}
+        
+        /* Make text white for contrast */
+        .stMarkdown, .stText {{
+            color: white;
+        }}
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 # -------------------------------------------------
 # CONFIG
 # -------------------------------------------------
@@ -255,7 +293,7 @@ col1, col2 = st.columns(2)
 with col1:
     mode_choice = st.radio(
         "Innføringmodus",
-        options=["Rask innføring", "Full dialog"],
+        options=["Skriv inn Slangebeskrivelse", "Velg Slange og Kuplinger"],
         index=0,
         key="mode_radio"
     )
