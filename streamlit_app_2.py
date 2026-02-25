@@ -25,7 +25,7 @@ import base64
 # CONFIG
 # -------------------------------------------------
 
-st.set_page_config(page_title="Slangeprogram", layout="wide", icon="assets/HP_ikon.ico")
+st.set_page_config(page_title="Slangeprogram", layout="wide")
 
 FIRST_FILE = "Slanger_hylser.xlsx"
 SECOND_FILE = "kuplinger_316.xlsx"
