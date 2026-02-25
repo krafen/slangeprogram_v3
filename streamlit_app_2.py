@@ -12,9 +12,36 @@ import openpyxl
 from datetime import datetime
 import io
 import os
+import base64
+from pathlib import Path
 
 import core
 
+
+# -------------------------------------------------
+# CUSTOM STYLING WITH LOCAL BACKGROUND IMAGE
+# -------------------------------------------------
+
+def get_base64_of_bin_file(bin_file):
+    with open(bin_file, 'rb') as f:
+        data = f.read()
+    return base64.b64encode(data).decode()
+
+img_base64 = get_base64_of_bin_file("assets/background.png")
+
+st.markdown(
+    f"""
+    <style>
+        .stApp {{
+            background-image: url(data:image/png;base64,{img_base64});
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }}
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 # -------------------------------------------------
 # CONFIG
