@@ -246,7 +246,7 @@ col1, col2 = st.columns(2)
 with col1:
     mode_choice = st.radio(
         "Innføringmodus",
-        options=["Rask innføring", "Full dialog"],
+        options=["Skriv inn Slangebeskrivelse", "Velg Slange og Kuplinger"],
         index=0,
         key="mode_radio"
     )
@@ -263,7 +263,7 @@ else:
 # -------------------------------------------------
 
 if st.session_state.input_mode == "quick":
-    st.header("➕ Rask innføring")
+    st.header("➕ Skriv in Slangebeskrivelse")
 
     col1, col2 = st.columns([2, 1])
 
