@@ -25,19 +25,6 @@ import core
 
 st.set_page_config(page_title="Slangeprogram", layout="wide", page_icon="assets/HP.ico")
 
-def get_base64(file_path):
-    with open(file_path, "rb") as f:
-        return base64.b64encode(f.read()).decode()
-
-img = get_base64("assets/background.png")
-
-st.markdown("""
-    <style>
-    .stApp {
-        background: linear-gradient(135deg, #0E1117 0%, #1E3A8A 100%);
-    }
-    </style>
-""", unsafe_allow_html=True)
 
 FIRST_FILE = "Slanger_hylser.xlsx"
 SECOND_FILE = "kuplinger_316.xlsx"
