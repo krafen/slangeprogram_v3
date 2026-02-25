@@ -574,7 +574,7 @@ elif st.session_state.input_mode == "full":
     if has_angle_c1 and has_angle_c2:
         st.divider()
         st.subheader("⚙️ Vinkel")
-        angle = st.text_input("Skriv inn vinkel (f.eks. 45 eller 90)", key="full_angle")
+        angle = st.text_input("Skriv inn vinkel", key="full_angle")
 
     # Pressure test
     st.divider()
