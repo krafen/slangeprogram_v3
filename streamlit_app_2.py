@@ -280,15 +280,14 @@ def generate_excel():
 # MAIN UI
 # -------------------------------------------------
 
-st.title("🔧 Slangeprogram")
-
-# Centered image with caption
+# Image at top
 col1, col2, col3 = st.columns([1, 2, 1])
 with col2:
-    st.image("assets/logo.png", use_column_width=True, caption="Hydra Pipe AS")
+    st.image("assets/logo.png", use_column_width=True)
+
+st.title("🔧 Slangeprogram")
 
 st.divider()
-
 # Mode selection
 col1, col2 = st.columns(2)
 with col1:
