@@ -98,14 +98,10 @@ def process_and_add_hose(selected_row, second_row1, second_row2, sheet_name_foun
             pass
 
     if first_line:
-        # Add angle to first line if provided
-        if angle and angle.strip():
-            first_line_display = f"{first_line}/{angle}°"
-        else:
-            first_line_display = first_line
-        rows.append(["1", first_line_display, int(lager), 1])
+        # Quick mode - just use the first line as-is
+        rows.append(["1", first_line, int(lager), 1])
     else:
-        # Build first line from components
+        # Full mode - build first line from components with angle if provided
         part1 = str(selected_row["Beskrivelse"])[:7] if selected_row is not None else ""
         part2 = str(length_int if length_int else "")
         part3 = str(second_row1["Beskrivelse"])[:9 if material == "stål" else 15] if second_row1 is not None else ""
@@ -323,7 +319,7 @@ if st.session_state.input_mode == "quick":
             process_and_add_hose(
                 selected_row, second_row1, second_row2, sheet_name_found, size_str,
                 length_int, material, lager, pos_mark, posnr, pressure_test,
-                pressure_details, antall_slanger, first_line
+                pressure_details, antall_slanger, first_line=first_line
             )
 
             st.success(f"✅ Slange lagt til! ({len(st.session_state.output_rows)} rader)")
@@ -590,12 +586,15 @@ else:
             pressure_details["hydra_ordre_nr"] = st.text_input("Hydra Pipe ordre nr.", key="full_hydra_ordre")
             pressure_details["kundes_del_nr"] = st.text_input("Kundes del nr.", key="full_del_nr")
 
-    # Add to order
+        # Add to order
     if st.button("✅ Legg til slange", use_container_width=True, key="full_add_btn"):
+        # Update pressure_details with angle for certificate
+        pressure_details["angle"] = angle
+        
         process_and_add_hose(
             selected_row, row_c1, row_c2, sheet_name, size,
             length, material, lager, pos_mark, posnr, pressure_test,
-            pressure_details, antall_slanger
+            pressure_details, antall_slanger, first_line="", angle=angle
         )
 
         # Reset selections
