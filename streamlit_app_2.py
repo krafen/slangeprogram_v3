@@ -282,16 +282,25 @@ def generate_excel():
 
 st.title("🔧 Slangeprogram")
 
+# Add image at the top
+st.image("assets/logo.png", width=400, use_column_width=True)
+
+# Or with a container for better control:
+col1, col2, col3 = st.columns([1, 2, 1])
+with col2:
+    st.image("assets/logo.png", width=300)
+
+st.divider()
+
 # Mode selection with simpler logic
 col1, col2 = st.columns(2)
 with col1:
     mode_choice = st.radio(
         "Innføringmodus",
-        options=["Skriv inn Slangebeskrivelse", "Velg Slange og Kuplinger"],
+        options=["Rask innføring", "Full dialog"],
         index=0,
         key="mode_radio"
     )
-
 # Update session state based on selection
 if mode_choice == "Skriv inn Slangebeskrivelse":
     st.session_state.input_mode = "quick"
