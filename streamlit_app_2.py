@@ -86,7 +86,7 @@ if "full_df2" not in st.session_state:
 
 def process_and_add_hose(selected_row, second_row1, second_row2, sheet_name_found, size_str, 
                         length_int, material, lager, pos_mark, posnr, pressure_test, 
-                        pressure_details, antall_slanger, first_line=""):
+                        pressure_details, antall_slanger, first_line="", angle=""):
     """Process hose data and add to output rows"""
     rows = []
 
@@ -98,15 +98,26 @@ def process_and_add_hose(selected_row, second_row1, second_row2, sheet_name_foun
             pass
 
     if first_line:
-        rows.append(["1", first_line, int(lager), 1])
+        # Add angle to first line if provided
+        if angle and angle.strip():
+            first_line_display = f"{first_line}/{angle}°"
+        else:
+            first_line_display = first_line
+        rows.append(["1", first_line_display, int(lager), 1])
     else:
+        # Build first line from components
         part1 = str(selected_row["Beskrivelse"])[:7] if selected_row is not None else ""
         part2 = str(length_int if length_int else "")
         part3 = str(second_row1["Beskrivelse"])[:9 if material == "stål" else 15] if second_row1 is not None else ""
         part4 = str(second_row2["Beskrivelse"])[:9 if material == "stål" else 15] if second_row2 is not None else ""
-        first_line = f"{part1}/{part2}/{part3}/{part4}"
-        rows.append(["1", first_line, int(lager), 1])
+        
+        if angle and angle.strip():
+            first_line_display = f"{part1}/{part2}/{part3}/{part4}/{angle}°"
+        else:
+            first_line_display = f"{part1}/{part2}/{part3}/{part4}"
+        rows.append(["1", first_line_display, int(lager), 1])
 
+    # Add products
     if selected_row is not None:
         try:
             qty = round((length_int or 1000) / 1000, 3)
@@ -177,8 +188,6 @@ def process_and_add_hose(selected_row, second_row1, second_row2, sheet_name_foun
             "material": material,
             "pressure_details": pressure_details
         })
-
-
 def generate_excel():
     """Generate Excel file with all sheets"""
     output_wb = core.create_output_workbook(
@@ -253,7 +262,7 @@ if st.session_state.input_mode == "quick":
     col1, col2 = st.columns([2, 1])
 
     with col1:
-        first_line = st.text_input("Første utdata-linje", placeholder="Del1/Lengde/Del2/Del3[/Vinkel°]")
+        first_line = st.text_input("Første utdata-linje", placeholder="Del1/Lengde/Del2/Del3")
 
     with col2:
         material = st.selectbox("Materiale", ["stål", "syrefast"], key="quick_material")
@@ -303,7 +312,7 @@ if st.session_state.input_mode == "quick":
             pressure_details["hydra_ordre_nr"] = st.text_input("Hydra Pipe ordre nr.", key="quick_hydra_ordre")
             pressure_details["kundes_del_nr"] = st.text_input("Kundes del nr.", key="quick_del_nr")
 
-    if st.button("✅ Legg til slange", use_container_width=True, key="quick_add_btn"):
+       if st.button("✅ Legg til slange", use_container_width=True, key="quick_add_btn"):
         if not first_line:
             st.error("Første utdata-linje må oppgis!")
         else:
@@ -314,7 +323,7 @@ if st.session_state.input_mode == "quick":
             process_and_add_hose(
                 selected_row, second_row1, second_row2, sheet_name_found, size_str,
                 length_int, material, lager, pos_mark, posnr, pressure_test,
-                pressure_details, antall_slanger, first_line
+                pressure_details, antall_slanger, first_line, angle=""
             )
 
             st.success(f"✅ Slange lagt til! ({len(st.session_state.output_rows)} rader)")
@@ -323,7 +332,7 @@ if st.session_state.input_mode == "quick":
 # -------------------------------------------------
 
 else:
-    st.header("📝 Foreløpig struktur i Visma")
+    st.header("📝 Velg Slange og Kuplinger")
 
     st.subheader("1️⃣ Velg slange")
 
