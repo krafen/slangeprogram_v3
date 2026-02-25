@@ -32,7 +32,7 @@ def get_base64_of_bin_file(bin_file):
         data = f.read()
     return base64.b64encode(data).decode()
 
-img_base64 = get_base64_of_bin_file("assets/background_1.png")
+img_base64 = get_base64_of_bin_file("assets/background.png")
 
 st.markdown(
     f"""
