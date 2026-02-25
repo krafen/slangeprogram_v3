@@ -661,4 +661,4 @@ if st.session_state.output_rows:
                 use_container_width=True
             )
 else:
-    st.info("👈 Ingen slanger lagt til ennå. Velg innføringmodus og fyll inn feltene")
+    st.info("🙃 Ingen slanger lagt til ennå. Velg innføringmodus og fyll inn feltene")
