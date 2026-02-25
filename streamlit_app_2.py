@@ -312,7 +312,7 @@ if st.session_state.input_mode == "quick":
             pressure_details["hydra_ordre_nr"] = st.text_input("Hydra Pipe ordre nr.", key="quick_hydra_ordre")
             pressure_details["kundes_del_nr"] = st.text_input("Kundes del nr.", key="quick_del_nr")
 
-       if st.button("✅ Legg til slange", use_container_width=True, key="quick_add_btn"):
+    if st.button("✅ Legg til slange", use_container_width=True, key="quick_add_btn"):
         if not first_line:
             st.error("Første utdata-linje må oppgis!")
         else:
@@ -323,7 +323,7 @@ if st.session_state.input_mode == "quick":
             process_and_add_hose(
                 selected_row, second_row1, second_row2, sheet_name_found, size_str,
                 length_int, material, lager, pos_mark, posnr, pressure_test,
-                pressure_details, antall_slanger, first_line, angle=""
+                pressure_details, antall_slanger, first_line
             )
 
             st.success(f"✅ Slange lagt til! ({len(st.session_state.output_rows)} rader)")
