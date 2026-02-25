@@ -33,10 +33,8 @@ img = get_base64("assets/background.png")
 
 st.markdown("""
     <style>
-    .block-container {
-        background-color: rgba(0, 0, 0, 0.6);
-        padding: 2rem;
-        border-radius: 12px;
+    .stApp {
+        background: linear-gradient(135deg, #0E1117 0%, #1E3A8A 100%);
     }
     </style>
 """, unsafe_allow_html=True)
