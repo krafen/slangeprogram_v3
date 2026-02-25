@@ -15,7 +15,7 @@ import os
 import base64
 
 
-import core.py
+import core
 
 
 
