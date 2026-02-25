@@ -362,7 +362,7 @@ elif st.session_state.input_mode == "full":
         type_approval = st.checkbox("Type Approval (DNV)?", key="full_type_approval")
 
     # Search hose
-    search = st.text_input("Søk i slange beskrivelse", key="full_search")
+    search = st.text_input("Søk etter slange", key="full_search")
 
     # Filter by Type Approval if checked
     filtered_df = df1.copy()
