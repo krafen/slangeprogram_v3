@@ -253,7 +253,7 @@ if st.session_state.input_mode == "quick":
     col1, col2 = st.columns([2, 1])
 
     with col1:
-        first_line = st.text_input("Første utdata-linje", placeholder="Del1/Lengde/Del2/Del3[/Vinkel°]")
+        first_line = st.text_input("Første utdata-linje", placeholder="Del1/Lengde/Del2/Del3")
 
     with col2:
         material = st.selectbox("Materiale", ["stål", "syrefast"], key="quick_material")
@@ -325,7 +325,7 @@ if st.session_state.input_mode == "quick":
 # -------------------------------------------------
 
 else:
-    st.header("📝 Full dialog")
+    st.header("📝 Valg av slange og kuplinger")
 
     st.subheader("1️⃣ Velg slange")
 
@@ -548,7 +548,7 @@ else:
 # -------------------------------------------------
 
 st.divider()
-st.header("📊 Nåværende utdata")
+st.header("📊 Foreløpig slangestruktur i Visma")
 
 if st.session_state.output_rows:
     output_df = pd.DataFrame(st.session_state.output_rows, columns=["Prod.no", "Beskrivelse", "Lager", "Antall"])
