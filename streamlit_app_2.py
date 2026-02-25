@@ -340,7 +340,7 @@ if st.session_state.input_mode == "quick":
 # -------------------------------------------------
 
 elif st.session_state.input_mode == "full":
-else:
+
     st.header("📝 Velg Slange og Kuplinger")
 
     st.subheader("1️⃣ Velg slange")
