@@ -280,19 +280,17 @@ def generate_excel():
 # MAIN UI
 # -------------------------------------------------
 
+st.markdown("""
+    <div style="text-align: center; margin-bottom: 20px;">
+        <img src="assets/logo.png" width="400" alt="Logo">
+    </div>
+    """, unsafe_allow_html=True)
+
 st.title("🔧 Slangeprogram")
-
-# Add image at the top
-st.image("assets/logo.png", width=400, use_column_width=True)
-
-# Or with a container for better control:
-col1, col2, col3 = st.columns([1, 2, 1])
-with col2:
-    st.image("assets/logo.png", width=300)
 
 st.divider()
 
-# Mode selection with simpler logic
+# Mode selection
 col1, col2 = st.columns(2)
 with col1:
     mode_choice = st.radio(
