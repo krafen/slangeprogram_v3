@@ -24,10 +24,19 @@ import core
 # -------------------------------------------------
 
 st.set_page_config(page_title="Slangeprogram", layout="wide", page_icon="assets/HP.ico")
+
+def get_base64(file_path):
+    with open(file_path, "rb") as f:
+        return base64.b64encode(f.read()).decode()
+
+img = get_base64("assets/background.png")
+
 st.markdown("""
     <style>
-    .stApp {
-        background-color: #0E1117;
+    .block-container {
+        background-color: rgba(0, 0, 0, 0.6);
+        padding: 2rem;
+        border-radius: 12px;
     }
     </style>
 """, unsafe_allow_html=True)
