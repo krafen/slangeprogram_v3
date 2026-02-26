@@ -285,7 +285,7 @@ if st.session_state.input_mode == "quick":
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        lager = st.selectbox("Lager",
+        lager = st.selectbox("Hvor skal slangen lages?",
                              options=["3", "1", "5"],
                              format_func=lambda x: {"3": "Lillestrøm", "1": "Ålesund", "5": "Trondheim"}[x],
                              key="quick_lager")
