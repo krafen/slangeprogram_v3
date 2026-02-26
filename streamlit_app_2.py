@@ -393,14 +393,28 @@ elif st.session_state.input_mode == "full":
         ]
 
     st.write("**Velg slange fra tabellen under:**")
-    event = st.dataframe(
-        filtered_df[["Prod.no", "Beskrivelse_2", "Dimensjon", "Trykk(bar)"]],
-        use_container_width=True,
-        hide_index=True,
-        on_select="rerun",
-        selection_mode="single-row",
-        key="hose_table"
+    hose_display = filtered_df[["Prod.no", "Beskrivelse_2", "Dimensjon", "Trykk(bar)"]]
+
+    gb = GridOptionsBuilder.from_dataframe(hose_display)
+    gb.configure_selection("single", use_checkbox=False)  # 👈 no checkboxes
+    gb.configure_grid_options(domLayout='normal')
+    
+    grid_options = gb.build()
+    
+    grid_response = AgGrid(
+        hose_display,
+        gridOptions=grid_options,
+        update_mode=GridUpdateMode.SELECTION_CHANGED,
+        fit_columns_on_grid_load=True,
+        height=300,
+        key="hose_grid"
     )
+    
+    selected_rows = grid_response["selected_rows"]
+    
+    if selected_rows:
+        selected_prod_no = selected_rows[0]["Prod.no"]
+        st.session_state.selected_hose_row = df1[df1["Prod.no"] == selected_prod_no].iloc[0] )
 
     # Check if row was selected
     if event.selection and event.selection["rows"]:
@@ -500,14 +514,21 @@ elif st.session_state.input_mode == "full":
     with col1:
         st.write("**Kupling 1**")
         st.write("Velg kupling fra tabellen:")
-        event1 = st.dataframe(
+        gb1 = GridOptionsBuilder.from_dataframe(df2[["Prod.no", "Beskrivelse"]])
+        gb1.configure_selection("single", use_checkbox=False)
+        
+        grid_response1 = AgGrid(
             df2[["Prod.no", "Beskrivelse"]],
-            use_container_width=True,
-            hide_index=True,
-            on_select="rerun",
-            selection_mode="single-row",
-            key="coupling1_table"
+            gridOptions=gb1.build(),
+            update_mode=GridUpdateMode.SELECTION_CHANGED,
+            fit_columns_on_grid_load=True,
+            height=300,
+            key="coupling1_grid"
         )
+        
+        if grid_response1["selected_rows"]:
+            selected_c1_prod = grid_response1["selected_rows"][0]["Prod.no"]
+            st.session_state.selected_c1_row = df2[df2["Prod.no"] == selected_c1_prod].iloc[0]
         
         if event1.selection and event1.selection["rows"]:
             selected_idx1 = event1.selection["rows"][0]
@@ -522,14 +543,21 @@ elif st.session_state.input_mode == "full":
     with col2:
         st.write("**Kupling 2**")
         st.write("Velg kupling fra tabellen:")
-        event2 = st.dataframe(
+        gb2 = GridOptionsBuilder.from_dataframe(df2[["Prod.no", "Beskrivelse"]])
+        gb2.configure_selection("single", use_checkbox=False)
+        
+        grid_response2 = AgGrid(
             df2[["Prod.no", "Beskrivelse"]],
-            use_container_width=True,
-            hide_index=True,
-            on_select="rerun",
-            selection_mode="single-row",
-            key="coupling2_table"
+            gridOptions=gb2.build(),
+            update_mode=GridUpdateMode.SELECTION_CHANGED,
+            fit_columns_on_grid_load=True,
+            height=300,
+            key="coupling2_grid"
         )
+        
+        if grid_response2["selected_rows"]:
+            selected_c2_prod = grid_response2["selected_rows"][0]["Prod.no"]
+            st.session_state.selected_c2_row = df2[df2["Prod.no"] == selected_c2_prod].iloc[0]
         
         if event2.selection and event2.selection["rows"]:
             selected_idx2 = event2.selection["rows"][0]
