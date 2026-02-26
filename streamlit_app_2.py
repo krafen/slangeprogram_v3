@@ -404,7 +404,9 @@ elif st.session_state.input_mode == "full":
         key="hose_grid"
     )
 
-    if grid_response["selected_rows"]:
+    selected_rows = grid_response.get("selected_rows", [])
+
+    if selected_rows is not None and len(selected_rows) > 0:
         selected_prod_no = grid_response["selected_rows"][0]["Prod.no"]
         st.session_state.selected_hose_row = df1[
             df1["Prod.no"] == selected_prod_no
