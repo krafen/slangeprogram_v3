@@ -248,14 +248,14 @@ col1, col2, col3 = st.columns([1, 2, 1])
 with col2:
     st.image("assets/logo.png", use_column_width=True)
 
-st.title("💎 Slangeprogram")
+st.title("💎 Eivind's Slangeprogram")
 
 st.divider()
 # Mode selection
 col1, col2 = st.columns(2)
 with col1:
     mode_choice = st.radio(
-        "Velg program",
+        "Program",
         options=["Skriv inn Slangebeskrivelse", "Velg Slange og Kuplinger"],
         index=0,
         key="mode_radio"
