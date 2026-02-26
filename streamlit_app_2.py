@@ -255,7 +255,7 @@ st.divider()
 col1, col2 = st.columns(2)
 with col1:
     mode_choice = st.radio(
-        "Innføringmodus",
+        "Velg program",
         options=["Skriv inn Slangebeskrivelse", "Velg Slange og Kuplinger"],
         index=0,
         key="mode_radio"
@@ -661,4 +661,4 @@ if st.session_state.output_rows:
                 use_container_width=True
             )
 else:
-    st.info("🙃 Ingen slanger lagt til ennå. Velg innføringmodus og fyll inn feltene")
+    st.info("🙃 Ingen slanger lagt til ennå.")
