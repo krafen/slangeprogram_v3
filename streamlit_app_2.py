@@ -354,8 +354,9 @@ elif st.session_state.input_mode == "full":
     st.header("📝 Velg Slange og Kuplinger")
 
     # -------------------------------------------------
-    # Helper: Safe extraction from AgGrid
+    # Helper functions
     # -------------------------------------------------
+
     def get_selected_prod_no(selected_rows):
         if selected_rows is None or len(selected_rows) == 0:
             return None
@@ -363,16 +364,21 @@ elif st.session_state.input_mode == "full":
             return selected_rows.iloc[0]["Prod.no"]
         return selected_rows[0]["Prod.no"]
 
+    def safe_row_lookup(df, prod_no):
+        if prod_no is None:
+            return None
+        match = df[df["Prod.no"] == prod_no]
+        if not match.empty:
+            return match.iloc[0]
+        return None
+
     # -------------------------------------------------
     # 1️⃣ HOSE SELECTION
     # -------------------------------------------------
 
     st.subheader("1️⃣ Velg slange")
 
-    col1, col2 = st.columns([2, 1])
-    with col2:
-        type_approval = st.checkbox("Type Approval (DNV)?", key="full_type_approval")
-
+    type_approval = st.checkbox("Type Approval (DNV)?", key="full_type_approval")
     search = st.text_input("Søk etter slange", key="full_search")
 
     filtered_df = df1.copy()
@@ -390,7 +396,7 @@ elif st.session_state.input_mode == "full":
                 filtered_df[dnv_col].astype(str).str.contains("DNV", na=False)
             ]
 
-    # --- Search filtering ---
+    # --- Search ---
     if search:
         filtered_df = filtered_df[
             filtered_df["Beskrivelse_2"]
@@ -404,7 +410,7 @@ elif st.session_state.input_mode == "full":
     gb.configure_selection("single", use_checkbox=False)
     gb.configure_default_column(filter=True, sortable=True)
 
-    grid_response = AgGrid(
+    hose_grid = AgGrid(
         hose_display,
         gridOptions=gb.build(),
         update_mode=GridUpdateMode.SELECTION_CHANGED,
@@ -413,14 +419,12 @@ elif st.session_state.input_mode == "full":
         key="hose_grid"
     )
 
-    selected_prod_no = get_selected_prod_no(grid_response.get("selected_rows"))
+    selected_hose_no = get_selected_prod_no(hose_grid.get("selected_rows"))
 
-    if selected_prod_no:
-        st.session_state.selected_hose_row = df1[
-            df1["Prod.no"] == selected_prod_no
-        ].iloc[0]
+    if selected_hose_no:
+        st.session_state.selected_hose_row = safe_row_lookup(df1, selected_hose_no)
 
-    if st.session_state.selected_hose_row is None:
+    if st.session_state.get("selected_hose_row") is None:
         st.info("Velg en slange")
         st.stop()
 
@@ -431,7 +435,7 @@ elif st.session_state.input_mode == "full":
     # 2️⃣ OPTIONS
     # -------------------------------------------------
 
-    col1, col2, col3 = st.columns(3)
+    col1, col2 = st.columns(2)
 
     with col1:
         length = st.number_input("Lengde (mm)", value=1000, key="full_length")
@@ -441,27 +445,9 @@ elif st.session_state.input_mode == "full":
 
     size = str(selected_row["Dimensjon"]).zfill(2)
 
-    # --- Original sheet selection logic preserved ---
-
+    # --- Sheet logic ---
     if material == "syrefast":
-        try:
-            slange_hylse_df = core.clean_columns(
-                pd.read_excel(FIRST_FILE, sheet_name="Slange+Hylse")
-            )
-            prod_no = selected_row.get("Prod.no")
-            match = slange_hylse_df.loc[slange_hylse_df["Prod.no"] == prod_no]
-
-            if not match.empty and len(slange_hylse_df.columns) > 11:
-                col_l_val = str(match.iloc[0, 11])
-                if "5" in col_l_val:
-                    sheet_name = f"Kuplinger {size}(5-316)"
-                else:
-                    sheet_name = f"Kuplinger {size}(316)"
-            else:
-                sheet_name = f"Kuplinger {size}(316)"
-        except:
-            sheet_name = f"Kuplinger {size}(316)"
-
+        sheet_name = f"Kuplinger {size}(316)"
     else:
         sheet_name = f"Kuplinger {size}(st)"
 
@@ -472,7 +458,16 @@ elif st.session_state.input_mode == "full":
     df2 = df2_all[sheet_name]
 
     # -------------------------------------------------
-    # 3️⃣ COUPLING SELECTION
+    # Reset couplings if sheet changed
+    # -------------------------------------------------
+
+    if st.session_state.get("active_sheet") != sheet_name:
+        st.session_state.selected_c1_row = None
+        st.session_state.selected_c2_row = None
+        st.session_state.active_sheet = sheet_name
+
+    # -------------------------------------------------
+    # 3️⃣ COUPLINGS
     # -------------------------------------------------
 
     st.divider()
@@ -480,7 +475,7 @@ elif st.session_state.input_mode == "full":
 
     col1, col2 = st.columns(2)
 
-    # --- Coupling 1 ---
+    # ---- Coupling 1 ----
     with col1:
         st.write("**Kupling 1**")
 
@@ -488,7 +483,7 @@ elif st.session_state.input_mode == "full":
         gb1.configure_selection("single", use_checkbox=False)
         gb1.configure_default_column(filter=True, sortable=True)
 
-        grid_response1 = AgGrid(
+        grid1 = AgGrid(
             df2[["Prod.no", "Beskrivelse"]],
             gridOptions=gb1.build(),
             update_mode=GridUpdateMode.SELECTION_CHANGED,
@@ -497,14 +492,13 @@ elif st.session_state.input_mode == "full":
             key="coupling1_grid"
         )
 
-        selected_c1 = get_selected_prod_no(grid_response1.get("selected_rows"))
+        selected_c1 = get_selected_prod_no(grid1.get("selected_rows"))
+        row1 = safe_row_lookup(df2, selected_c1)
 
-        if selected_c1:
-            st.session_state.selected_c1_row = df2[
-                df2["Prod.no"] == selected_c1
-            ].iloc[0]
+        if row1 is not None:
+            st.session_state.selected_c1_row = row1
 
-    # --- Coupling 2 ---
+    # ---- Coupling 2 ----
     with col2:
         st.write("**Kupling 2**")
 
@@ -512,7 +506,7 @@ elif st.session_state.input_mode == "full":
         gb2.configure_selection("single", use_checkbox=False)
         gb2.configure_default_column(filter=True, sortable=True)
 
-        grid_response2 = AgGrid(
+        grid2 = AgGrid(
             df2[["Prod.no", "Beskrivelse"]],
             gridOptions=gb2.build(),
             update_mode=GridUpdateMode.SELECTION_CHANGED,
@@ -521,65 +515,24 @@ elif st.session_state.input_mode == "full":
             key="coupling2_grid"
         )
 
-        selected_c2 = get_selected_prod_no(grid_response2.get("selected_rows"))
+        selected_c2 = get_selected_prod_no(grid2.get("selected_rows"))
+        row2 = safe_row_lookup(df2, selected_c2)
 
-        if selected_c2:
-            st.session_state.selected_c2_row = df2[
-                df2["Prod.no"] == selected_c2
-            ].iloc[0]
+        if row2 is not None:
+            st.session_state.selected_c2_row = row2
 
     if (
-        st.session_state.selected_c1_row is None
-        or st.session_state.selected_c2_row is None
+        st.session_state.get("selected_c1_row") is None
+        or st.session_state.get("selected_c2_row") is None
     ):
-        st.warning("⚠️ Du må velge kuplinger i begge ender")
+        st.warning("⚠️ Velg kuplinger i begge ender")
         st.stop()
 
     row_c1 = st.session_state.selected_c1_row
     row_c2 = st.session_state.selected_c2_row
 
     # -------------------------------------------------
-    # 4️⃣ SETTINGS
-    # -------------------------------------------------
-
-    st.divider()
-    st.subheader("3️⃣ Innstillinger")
-
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-        lager = st.selectbox(
-            "Lager",
-            options=["3", "1", "5"],
-            format_func=lambda x: {
-                "3": "Lillestrøm",
-                "1": "Ålesund",
-                "5": "Trondheim"
-            }[x],
-            key="full_lager"
-        )
-
-    with col2:
-        antall_slanger = st.number_input(
-            "Antall slanger",
-            min_value=1,
-            value=1,
-            key="full_antall"
-        )
-
-    with col3:
-        pos_mark = st.checkbox("Merke med POS.nr?", key="full_pos_mark")
-
-    posnr = ""
-    if pos_mark:
-        posnr = st.text_input(
-            "POS.nr",
-            value=str(st.session_state.pos_counter),
-            key="full_posnr"
-        )
-
-    # -------------------------------------------------
-    # ADD BUTTON
+    # 4️⃣ ADD BUTTON
     # -------------------------------------------------
 
     if st.button("✅ Legg til slange", use_container_width=True):
@@ -592,21 +545,21 @@ elif st.session_state.input_mode == "full":
             size,
             length,
             material,
-            lager,
-            pos_mark,
-            posnr,
+            "3",
+            False,
+            "",
             False,
             {},
-            antall_slanger,
+            1,
             first_line="",
             angle=""
         )
 
-        st.session_state.selected_hose_row = None
+        # Reset selection after add
         st.session_state.selected_c1_row = None
         st.session_state.selected_c2_row = None
 
-        st.success(f"✅ Slange lagt til! ({len(st.session_state.output_rows)} rader)")
+        st.success(f"✅ Slange lagt til!")
 # -------------------------------------------------
 # ORDER PREVIEW (Common to both modes)
 # -------------------------------------------------
