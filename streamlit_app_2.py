@@ -558,7 +558,7 @@ elif st.session_state.input_mode == "full":
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        lager = st.selectbox("Lager",
+        lager = st.selectbox("Hvor skal slangen lages?",
                              options=["3", "1", "5"],
                              format_func=lambda x: {"3": "Lillestrøm", "1": "Ålesund", "5": "Trondheim"}[x],
                              key="full_lager")
@@ -599,7 +599,7 @@ elif st.session_state.input_mode == "full":
     }
 
     if pressure_test:
-        st.subheader("📋 Trykktest Detaljer")
+        st.subheader("📋 Ordredetaljer")
         col1, col2 = st.columns(2)
         with col1:
             pressure_details["kunde"] = st.text_input("Kunde", key="full_kunde")
@@ -630,7 +630,7 @@ elif st.session_state.input_mode == "full":
 # -------------------------------------------------
 
 st.divider()
-st.header("📊 Foreløpig slangestruktur i Visma")
+st.header("🎓 Foreløpig slangestruktur i Visma")
 
 if st.session_state.output_rows:
     output_df = pd.DataFrame(st.session_state.output_rows, columns=["Prod.no", "Beskrivelse", "Lager", "Antall"])
@@ -639,7 +639,7 @@ if st.session_state.output_rows:
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        if st.button("🗑️ Slett siste", use_container_width=True):
+        if st.button("🗑️ Slett siste slange", use_container_width=True):
             if len(st.session_state.output_rows) > 0:
                 st.session_state.output_rows.pop()
             st.rerun()
