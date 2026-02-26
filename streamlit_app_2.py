@@ -255,7 +255,7 @@ st.divider()
 col1, col2 = st.columns(2)
 with col1:
     mode_choice = st.radio(
-        "Program",
+        "Velg hvordan du vil lage slangeordre",
         options=["Skriv inn Slangebeskrivelse", "Velg Slange og Kuplinger"],
         index=0,
         key="mode_radio"
