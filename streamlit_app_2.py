@@ -639,7 +639,7 @@ if st.session_state.output_rows:
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        if st.button("🗑️ Slett siste slange", use_container_width=True):
+        if st.button("🗑️ Slett siste linje", use_container_width=True):
             if len(st.session_state.output_rows) > 0:
                 st.session_state.output_rows.pop()
             st.rerun()
