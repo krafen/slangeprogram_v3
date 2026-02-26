@@ -189,11 +189,30 @@ def find_matches_from_summary(first_line, df1, df2_all, material_pref=None):
     # Find selected_first_row
     selected_row = None
     if part1:
-        for _, row in df1.iterrows():
-            b = str(row.get("Beskrivelse", "")).strip()
-            b2 = str(row.get("Beskrivelse_2", "")).strip()
-            if b.startswith(part1) or b2.startswith(part1) or part1 in b2 or part1 in b:
-                selected_row = row
+        sheet_key_lower = sheet_name.lower()
+        search_col_c = any(x in sheet_key_lower for x in ["316", "st", "5-316"])
+        
+        for _, r in dfc.iterrows():
+            desc = norm_key(r.get("Beskrivelse", ""))
+            
+            # Column C (index 2) – only for specific sheet keys
+            col_c_val = ""
+            if search_col_c and len(r) > 2:
+                col_c_val = norm_key(r.iloc[2])
+        
+            if part3 and (
+                desc.startswith(part3) or part3 in desc or
+                (search_col_c and (col_c_val.startswith(part3) or part3 in col_c_val))
+            ):
+                found1 = r
+        
+            if part4 and (
+                desc.startswith(part4) or part4 in desc or
+                (search_col_c and (col_c_val.startswith(part4) or part4 in col_c_val))
+            ):
+                found2 = r
+        
+            if found1 is not None and found2 is not None:
                 break
 
     second_row1 = second_row2 = None
@@ -216,14 +235,31 @@ def find_matches_from_summary(first_line, df1, df2_all, material_pref=None):
         dfc = clean_columns(df) if isinstance(df, pd.DataFrame) else df
         found1 = None
         found2 = None
-        for _, r in dfc.iterrows():
-            desc = norm_key(r.get("Beskrivelse", ""))
-            if part3 and (desc.startswith(part3) or part3 in desc):
-                found1 = r
-            if part4 and (desc.startswith(part4) or part4 in desc):
-                found2 = r
-            if found1 is not None and found2 is not None:
-                break
+        sheet_key_lower = sheet_name.lower()
+    search_col_c = any(x in sheet_key_lower for x in ["316", "st", "5-316"])
+    
+    for _, r in dfc.iterrows():
+        desc = norm_key(r.get("Beskrivelse", ""))
+        
+        # Column C (index 2) – only for specific sheet keys
+        col_c_val = ""
+        if search_col_c and len(r) > 2:
+            col_c_val = norm_key(r.iloc[2])
+    
+        if part3 and (
+            desc.startswith(part3) or part3 in desc or
+            (search_col_c and (col_c_val.startswith(part3) or part3 in col_c_val))
+        ):
+            found1 = r
+    
+        if part4 and (
+            desc.startswith(part4) or part4 in desc or
+            (search_col_c and (col_c_val.startswith(part4) or part4 in col_c_val))
+        ):
+            found2 = r
+    
+        if found1 is not None and found2 is not None:
+            break
         if found1 is not None and found2 is not None:
             candidate_sheets.append((sheet_name, found1, found2))
 
