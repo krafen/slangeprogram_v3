@@ -29,11 +29,10 @@ st.set_page_config(page_title="Slangeprogram", layout="wide", page_icon="assets/
 # CUSTOM STYLING
 # -------------------------------------------------
 
-import base64
+
+
 
 def set_background(image_path):
-    import base64
-
     with open(image_path, "rb") as img_file:
         encoded = base64.b64encode(img_file.read()).decode()
 
@@ -58,55 +57,16 @@ def set_background(image_path):
             z-index: 0;
         }}
 
-        /* === Main White Cards === */
+        /* Single continuous white container */
         .main-card {{
             background: white;
-            padding: 2.5rem;
-            border-radius: 18px;
-            box-shadow: 0 15px 40px rgba(0,0,0,0.35);
+            padding: 3rem;
+            border-radius: 20px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.35);
             max-width: 1200px;
-            margin: 3rem auto;
+            margin: 3rem auto 4rem auto;
             position: relative;
             z-index: 1;
-        }}
-
-        .preview-card {{
-            background: white;
-            padding: 2rem;
-            border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.25);
-            max-width: 1200px;
-            margin: 2rem auto 4rem auto;
-            position: relative;
-            z-index: 1;
-        }}
-
-        /* === White boxes around ALL text elements === */
-
-        h1, h2, h3, h4, h5, h6 {{
-            background: white;
-            padding: 0.4rem 0.8rem;
-            border-radius: 10px;
-            display: inline-block;
-        }}
-
-        /* Regular text */
-        .stMarkdown, .stText {{
-            background: white;
-            padding: 0.5rem 0.8rem;
-            border-radius: 8px;
-        }}
-
-        /* Info / Warning / Success messages */
-        .stAlert {{
-            border-radius: 12px !important;
-        }}
-
-        /* Dataframe container */
-        .stDataFrame {{
-            background: white;
-            padding: 1rem;
-            border-radius: 12px;
         }}
 
         </style>
