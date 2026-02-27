@@ -248,7 +248,7 @@ col1, col2, col3 = st.columns([1, 2, 1])
 with col2:
     st.image("assets/logo.png", use_column_width=True)
 
-st.title("🥇 Eivind's Slangeprogram")
+st.title("🥇 Slangeprogram")
 
 st.divider()
 # Mode selection
