@@ -36,7 +36,7 @@ def set_background(image_path):
     with open(image_path, "rb") as img_file:
         encoded = base64.b64encode(img_file.read()).decode()
 
-    sst.markdown(
+    st.markdown(
         f"""
         <style>
     
