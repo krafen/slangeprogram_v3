@@ -32,6 +32,8 @@ st.set_page_config(page_title="Slangeprogram", layout="wide", page_icon="assets/
 
 
 
+
+
 def set_background(image_path):
     with open(image_path, "rb") as img_file:
         encoded = base64.b64encode(img_file.read()).decode()
@@ -39,35 +41,60 @@ def set_background(image_path):
     st.markdown(
         f"""
         <style>
-    
+
+        /* === Background Image === */
         .stApp {{
-            background-image: url("data:image/png;base64,{encoded}");
+            background-image: url("data:image/jpg;base64,{encoded}");
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
-            color: white;
         }}
-    
+
+        /* Dark overlay */
         .stApp::before {{
             content: "";
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.45);
+            background: rgba(0, 0, 0, 0.55);
             z-index: 0;
         }}
-    
-        .main-card {{
-            background: white;
-            padding: 3rem;
-            border-radius: 20px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.35);
-            max-width: 1200px;
-            margin: 3rem auto 4rem auto;
+
+        /* Bring content above overlay */
+        .block-container {{
             position: relative;
             z-index: 1;
-            color: #1f2a44;
         }}
-    
+
+        /* === FORCE ALL TEXT WHITE === */
+        html, body, [class*="css"]  {{
+            color: white !important;
+        }}
+
+        /* Labels */
+        label {{
+            color: white !important;
+        }}
+
+        /* Radio / checkbox text */
+        .stRadio label, .stCheckbox label {{
+            color: white !important;
+        }}
+
+        /* Markdown text */
+        .stMarkdown {{
+            color: white !important;
+        }}
+
+        /* Dataframe text */
+        .stDataFrame {{
+            color: white !important;
+        }}
+
+        /* Input text */
+        input, textarea {{
+            color: white !important;
+        }}
+
         </style>
         """,
         unsafe_allow_html=True
