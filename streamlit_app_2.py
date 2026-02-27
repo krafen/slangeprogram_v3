@@ -735,7 +735,7 @@ elif st.session_state.input_mode == "full":
 
         st.success(f"✅ Slange lagt til! ({len(st.session_state.output_rows)} rader)")
         
-        st.markdown('</div>', unsafe_allow_html=True)
+        
 # -------------------------------------------------
 # ORDER PREVIEW (Common to both modes)
 # -------------------------------------------------
