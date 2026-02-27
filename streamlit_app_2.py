@@ -130,8 +130,12 @@ def set_background(image_path):
             color: white !important;
         }}
     
-        /* === CHECKBOX TEXT (white) === */
-        .stCheckbox > p [data-testid="stMarkdownContainer"] {{
+        /* Checkbox-tekst: hvit tekst (alle varianter) */
+        .stCheckbox > label > div > span {{
+            color: white !important;
+        }}
+        
+        .stCheckbox > label > div > p {{
             color: white !important;
         }}
     
