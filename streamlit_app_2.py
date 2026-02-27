@@ -351,7 +351,7 @@ def generate_excel():
 # -------------------------------------------------
 
 
-st.markdown('<div class="main-card">', unsafe_allow_html=True)
+
 
 # Image at top
 col1, col2, col3 = st.columns([1, 2, 1])
@@ -359,7 +359,7 @@ with col2:
     st.image("assets/logo.png", use_column_width=True)
 
 st.title("💎 Slangeprogram")
-st.markdown('</div>', unsafe_allow_html=True)
+
 
 st.divider()
 # Mode selection
