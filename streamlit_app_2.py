@@ -52,10 +52,7 @@ def set_background(image_path):
             color: white;
         }}
         
-        /* Radio-valg skal være hvite */
-        .stRadio div[role="radiogroup"] label {{
-            color: white !important;
-        }}
+        
     
         /* Dark overlay */
         .stApp::before {{
