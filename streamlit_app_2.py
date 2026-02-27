@@ -130,12 +130,9 @@ def set_background(image_path):
             color: white !important;
         }}
     
-        /* Checkbox-tekst: hvit tekst (alle varianter) */
-        .stCheckbox > label > div > span {{
-            color: white !important;
-        }}
         
-        .stCheckbox > label > div > p {{
+        /* Checkbox-tekst: hvit tekst (Streamlit 1.31+) */
+        .stCheckbox label > div > div {{
             color: white !important;
         }}
     
