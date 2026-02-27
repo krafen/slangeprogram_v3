@@ -33,7 +33,6 @@ st.set_page_config(page_title="Slangeprogram", layout="wide", page_icon="assets/
 
 
 
-
 def set_background(image_path):
     with open(image_path, "rb") as img_file:
         encoded = base64.b64encode(img_file.read()).decode()
@@ -48,50 +47,35 @@ def set_background(image_path):
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
+            color: white;
         }}
 
-        /* Dark overlay */
+        /* Dark overlay for readability */
         .stApp::before {{
             content: "";
             position: fixed;
             inset: 0;
-            background: rgba(0, 0, 0, 0.55);
+            background: rgba(0, 0, 0, 0.65);
             z-index: 0;
         }}
 
-        /* Bring content above overlay */
-        .block-container {{
-            position: relative;
-            z-index: 1;
-        }}
-
-        /* === FORCE ALL TEXT WHITE === */
-        html, body, [class*="css"]  {{
+        /* Force ALL text to white */
+        html, body, p, span, div, label,
+        h1, h2, h3, h4, h5, h6 {{
             color: white !important;
         }}
 
-        /* Labels */
-        label {{
+        /* Make Streamlit widgets readable */
+        .stTextInput > div > div > input,
+        .stNumberInput input,
+        .stSelectbox div[data-baseweb="select"],
+        .stTextArea textarea {{
             color: white !important;
-        }}
-
-        /* Radio / checkbox text */
-        .stRadio label, .stCheckbox label {{
-            color: white !important;
-        }}
-
-        /* Markdown text */
-        .stMarkdown {{
-            color: white !important;
+            background-color: rgba(255,255,255,0.1) !important;
         }}
 
         /* Dataframe text */
         .stDataFrame {{
-            color: white !important;
-        }}
-
-        /* Input text */
-        input, textarea {{
             color: white !important;
         }}
 
