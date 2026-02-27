@@ -682,7 +682,7 @@ elif st.session_state.input_mode == "full":
 # -------------------------------------------------
 # ORDER PREVIEW (Common to both modes)
 # -------------------------------------------------
-st.markdown('<div class="preview-card">', unsafe_allow_html=True)
+
 st.divider()
 st.header("📊 Foreløpig slangestruktur i Visma")
 
