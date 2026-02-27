@@ -29,36 +29,35 @@ st.set_page_config(page_title="Slangeprogram", layout="wide", page_icon="assets/
 # CUSTOM STYLING
 # -------------------------------------------------
 
-def set_background():
+import base64
+
+def set_background(image_path):
+    with open(image_path, "rb") as img_file:
+        encoded = base64.b64encode(img_file.read()).decode()
+
     st.markdown(
-        """
+        f"""
         <style>
 
-        /* === Full Page Background === */
-        .stApp {
-            background-image: url("https://images.unsplash.com/photo-1581092919535-7146ff1dcb9d")
+        .stApp {{
+            background-image: url("data:image/jpg;base64,{encoded}");
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
-        }
+        }}
 
-        /* Dark overlay for readability */
-        .stApp::before {
+        .stApp::before {{
             content: "";
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(
-                rgba(10, 25, 47, 0.75),
-                rgba(10, 25, 47, 0.75)
-            );
+            background: rgba(0, 0, 0, 0.45);
             z-index: 0;
-        }
+        }}
 
-        /* Main white card */
-        .main-card {
+        .main-card {{
             background: white;
             padding: 2.5rem;
             border-radius: 18px;
@@ -67,10 +66,9 @@ def set_background():
             margin: 3rem auto;
             position: relative;
             z-index: 1;
-        }
+        }}
 
-        /* Secondary card (preview section) */
-        .preview-card {
+        .preview-card {{
             background: white;
             padding: 2rem;
             border-radius: 16px;
@@ -79,12 +77,7 @@ def set_background():
             margin: 2rem auto 4rem auto;
             position: relative;
             z-index: 1;
-        }
-
-        /* Cleaner headings */
-        h1, h2, h3 {
-            color: #1f2a44;
-        }
+        }}
 
         </style>
         """,
