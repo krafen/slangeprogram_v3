@@ -131,7 +131,7 @@ def set_background(image_path):
         }}
     
         /* === CHECKBOX TEXT (white) === */
-        .stCheckbox > p{{
+        .stCheckbox > p {{
             color: white !important;
         }}
     
