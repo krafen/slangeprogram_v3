@@ -101,11 +101,7 @@ def set_background(image_path):
             font-weight: 600 !important;
         }}
     
-        .stButton > button:hover {{
-            background-color: #f2f2f2 !important;
-            border: 1px solid #999 !important;
-            color: black !important;
-        }}
+        
     
         /* === DARK DATAFRAME === */
         .stDataFrame tbody tr td {{
