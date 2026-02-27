@@ -25,6 +25,73 @@ import core
 
 st.set_page_config(page_title="Slangeprogram", layout="wide", page_icon="assets/HP_icon.ico")
 
+# -------------------------------------------------
+# CUSTOM STYLING
+# -------------------------------------------------
+
+def set_background():
+    st.markdown(
+        """
+        <style>
+
+        /* === Full Page Background === */
+        .stApp {
+            background-image: url("https://images.unsplash.com/photo-1581092919535-7146ff1dcb9d");
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+        }
+
+        /* Dark overlay for readability */
+        .stApp::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(
+                rgba(10, 25, 47, 0.75),
+                rgba(10, 25, 47, 0.75)
+            );
+            z-index: 0;
+        }
+
+        /* Main white card */
+        .main-card {
+            background: white;
+            padding: 2.5rem;
+            border-radius: 18px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.35);
+            max-width: 1200px;
+            margin: 3rem auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Secondary card (preview section) */
+        .preview-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+            max-width: 1200px;
+            margin: 2rem auto 4rem auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Cleaner headings */
+        h1, h2, h3 {
+            color: #1f2a44;
+        }
+
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+set_background()
 
 FIRST_FILE = "Slanger_hylser.xlsx"
 SECOND_FILE = "kuplinger_316.xlsx"
@@ -243,19 +310,21 @@ def generate_excel():
 # MAIN UI
 # -------------------------------------------------
 
+st.markdown('<div class="main-card">', unsafe_allow_html=True)
+
 # Image at top
 col1, col2, col3 = st.columns([1, 2, 1])
 with col2:
     st.image("assets/logo.png", use_column_width=True)
 
-st.title("🥇 Slangeprogram")
+st.title("💎 Slangeprogram")
 
 st.divider()
 # Mode selection
 col1, col2 = st.columns(2)
 with col1:
     mode_choice = st.radio(
-        "Velg hvordan du vil lage slangeordre",
+        "Innføringmodus",
         options=["Skriv inn Slangebeskrivelse", "Velg Slange og Kuplinger"],
         index=0,
         key="mode_radio"
@@ -285,7 +354,7 @@ if st.session_state.input_mode == "quick":
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        lager = st.selectbox("Hvor skal slangen lages?",
+        lager = st.selectbox("Lager",
                              options=["3", "1", "5"],
                              format_func=lambda x: {"3": "Lillestrøm", "1": "Ålesund", "5": "Trondheim"}[x],
                              key="quick_lager")
@@ -558,7 +627,7 @@ elif st.session_state.input_mode == "full":
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        lager = st.selectbox("Hvor skal slangen lages?",
+        lager = st.selectbox("Lager",
                              options=["3", "1", "5"],
                              format_func=lambda x: {"3": "Lillestrøm", "1": "Ålesund", "5": "Trondheim"}[x],
                              key="full_lager")
@@ -599,7 +668,7 @@ elif st.session_state.input_mode == "full":
     }
 
     if pressure_test:
-        st.subheader("📋 Ordredetaljer")
+        st.subheader("📋 Trykktest Detaljer")
         col1, col2 = st.columns(2)
         with col1:
             pressure_details["kunde"] = st.text_input("Kunde", key="full_kunde")
@@ -625,12 +694,14 @@ elif st.session_state.input_mode == "full":
         st.session_state.selected_c2_row = None
 
         st.success(f"✅ Slange lagt til! ({len(st.session_state.output_rows)} rader)")
+        
+        st.markdown('</div>', unsafe_allow_html=True)
 # -------------------------------------------------
 # ORDER PREVIEW (Common to both modes)
 # -------------------------------------------------
-
+st.markdown('<div class="preview-card">', unsafe_allow_html=True)
 st.divider()
-st.header("🎓 Foreløpig slangestruktur i Visma")
+st.header("📊 Foreløpig slangestruktur i Visma")
 
 if st.session_state.output_rows:
     output_df = pd.DataFrame(st.session_state.output_rows, columns=["Prod.no", "Beskrivelse", "Lager", "Antall"])
@@ -639,7 +710,7 @@ if st.session_state.output_rows:
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        if st.button("🗑️ Slett siste linje", use_container_width=True):
+        if st.button("🗑️ Slett siste", use_container_width=True):
             if len(st.session_state.output_rows) > 0:
                 st.session_state.output_rows.pop()
             st.rerun()
@@ -661,4 +732,5 @@ if st.session_state.output_rows:
                 use_container_width=True
             )
 else:
-    st.info("🙃 Ingen slanger lagt til ennå.")
+    st.info("🙃 Ingen slanger lagt til ennå. Velg innføringmodus og fyll inn feltene")
+st.markdown('</div>', unsafe_allow_html=True)
