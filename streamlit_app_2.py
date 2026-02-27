@@ -95,11 +95,12 @@ def set_background(image_path):
         color: white !important;
     }}
     /* === BUTTON TEXT BLACK === */
-    .stButton > button {{
+        .stButton > button:hover {{
+        background-color: white !important;
         color: black !important;
-        background-color: rgba(255,255,255,0.9) !important;
-        border: 1px solid #ccc !important;
+        border: 1px solid #aaa !important;
     }}
+
 
 
     </style>
@@ -749,4 +750,3 @@ if st.session_state.output_rows:
             )
 else:
     st.info("🙃 Ingen slanger lagt til ennå. Velg innføringmodus og fyll inn feltene")
-st.markdown('</div>', unsafe_allow_html=True)
