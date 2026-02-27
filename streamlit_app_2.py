@@ -49,7 +49,7 @@ def set_background(image_path):
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
-            
+            color: white;
         }}
     
         /* Dark overlay */
