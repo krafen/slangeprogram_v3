@@ -58,14 +58,32 @@ def set_background(image_path):
             background: rgba(0, 0, 0, 0.65);
             z-index: 0;
         }}
-        input, textarea, .stSelectbox div[data-baseweb="select"] {{
-            background-color: rgba(0,0,0,0.6) !important;
-        }}
+        
+        
 
-        /* Force ALL text to white */
-        html, body, p, span, div, label,
-        h1, h2, h3, h4, h5, h6 {{
+       /* === DEFAULT TEXT WHITE === */
+        body, .stApp, p, span, div, h1, h2, h3, h4, h5, h6, label {{
             color: white !important;
+        }}
+        
+        /* === INPUT FIELDS (text typed by user) === */
+        input, textarea {{
+            color: black !important;
+        }}
+        
+        /* === SELECTBOX (selected value) === */
+        div[data-baseweb="select"] > div {{
+            color: black !important;
+        }}
+        
+        /* === SELECTBOX DROPDOWN MENU OPTIONS === */
+        ul[role="listbox"] li {{
+            color: black !important;
+        }}
+        
+        /* === NUMBER INPUT TEXT === */
+        input[type="number"] {{
+            color: black !important;
         }}
 
         /* Make Streamlit widgets readable */
