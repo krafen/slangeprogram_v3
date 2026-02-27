@@ -102,11 +102,7 @@ def set_background(image_path):
             border-radius: 6px !important;
             font-weight: 600 !important;
         }}
-    
-        /* Radio-valg skal være hvite */
-        .stRadio div[role="radiogroup"] label {{
-            color: white !important;
-        }}
+
     
         /* === DARK DATAFRAME === */
         .stDataFrame tbody tr td {{
@@ -125,6 +121,16 @@ def set_background(image_path):
     
         .stDataFrame tbody tr:hover td {{
             background-color: rgba(255,255,255,0.1) !important;
+        }}
+
+        /* Radio-valg skal være hvite */
+        .stRadio div[role="radiogroup"] label {{
+            color: white !important;
+        }}
+        
+        /* Checkbox-tekst skal være hvit */
+        .stCheckbox label {{
+            color: white !important;
         }}
     
     </style>
