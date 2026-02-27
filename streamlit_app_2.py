@@ -94,6 +94,13 @@ def set_background(image_path):
     .stDataFrame {{
         color: white !important;
     }}
+    /* === BUTTON TEXT BLACK === */
+    .stButton > button {{
+        color: black !important;
+        background-color: rgba(255,255,255,0.9) !important;
+        border: 1px solid #ccc !important;
+    }}
+
 
     </style>
     """,
