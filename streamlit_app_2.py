@@ -32,6 +32,8 @@ st.set_page_config(page_title="Slangeprogram", layout="wide", page_icon="assets/
 import base64
 
 def set_background(image_path):
+    import base64
+
     with open(image_path, "rb") as img_file:
         encoded = base64.b64encode(img_file.read()).decode()
 
@@ -39,6 +41,7 @@ def set_background(image_path):
         f"""
         <style>
 
+        /* === Background Image === */
         .stApp {{
             background-image: url("data:image/jpg;base64,{encoded}");
             background-size: cover;
@@ -46,17 +49,16 @@ def set_background(image_path):
             background-attachment: fixed;
         }}
 
+        /* Dark overlay */
         .stApp::before {{
             content: "";
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            inset: 0;
             background: rgba(0, 0, 0, 0.45);
             z-index: 0;
         }}
 
+        /* === Main White Cards === */
         .main-card {{
             background: white;
             padding: 2.5rem;
@@ -79,12 +81,40 @@ def set_background(image_path):
             z-index: 1;
         }}
 
+        /* === White boxes around ALL text elements === */
+
+        h1, h2, h3, h4, h5, h6 {{
+            background: white;
+            padding: 0.4rem 0.8rem;
+            border-radius: 10px;
+            display: inline-block;
+        }}
+
+        /* Regular text */
+        .stMarkdown, .stText {{
+            background: white;
+            padding: 0.5rem 0.8rem;
+            border-radius: 8px;
+        }}
+
+        /* Info / Warning / Success messages */
+        .stAlert {{
+            border-radius: 12px !important;
+        }}
+
+        /* Dataframe container */
+        .stDataFrame {{
+            background: white;
+            padding: 1rem;
+            border-radius: 12px;
+        }}
+
         </style>
         """,
         unsafe_allow_html=True
     )
 
-set_background("assets/background.png")
+set_background("assets/background.jpg")
 
 FIRST_FILE = "Slanger_hylser.xlsx"
 SECOND_FILE = "kuplinger_316.xlsx"
