@@ -36,7 +36,7 @@ def set_background():
 
         /* === Full Page Background === */
         .stApp {
-            background-image: url("https://images.unsplash.com/photo-1581092919535-7146ff1dcb9d");
+            background-image: url("https://static.wixstatic.com/media/51befe_1103e032e5d849eebd0f87d43ee22b2c~mv2.png/v1/fill/w_860,h_878,fp_0.39_0.42,q_90,enc_avif,quality_auto/51befe_1103e032e5d849eebd0f87d43ee22b2c~mv2.png
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
