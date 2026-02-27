@@ -40,51 +40,65 @@ def set_background(image_path):
         encoded = base64.b64encode(img_file.read()).decode()
 
     st.markdown(
-        f"""
-        <style>
+    f"""
+    <style>
 
-        /* === Background Image === */
-        .stApp {{
-            background-image: url("data:image/jpg;base64,{encoded}");
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
-            color: white;
-        }}
+    /* === Background Image === */
+    .stApp {{
+        background-image: url("data:image/jpg;base64,{encoded}");
+        background-size: cover;
+        background-position: center;
+        background-attachment: fixed;
+        color: white;
+    }}
 
-        /* Dark overlay for readability */
-        .stApp::before {{
-            content: "";
-            position: fixed;
-            inset: 0;
-            background: rgba(0, 0, 0, 0.65);
-            z-index: 0;
-        }}
+    /* Dark overlay */
+    .stApp::before {{
+        content: "";
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.65);
+        z-index: 0;
+    }}
 
-        /* Force ALL text to white */
-        html, body, p, span, div, label,
-        h1, h2, h3, h4, h5, h6 {{
-            color: white !important;
-        }}
+    /* === GLOBAL TEXT (white) === */
+    .stMarkdown, .stText, .stHeader, .stSubheader, label, p, h1, h2, h3, h4, h5, h6 {{
+        color: white !important;
+    }}
 
-        /* Make Streamlit widgets readable */
-        .stTextInput > div > div > input,
-        .stNumberInput input,
-        .stSelectbox div[data-baseweb="select"],
-        .stTextArea textarea {{
-            color: white !important;
-            background-color: rgba(255,255,255,0.1) !important;
-        }}
+    /* === INPUT FIELDS (black text) === */
+    .stTextInput input,
+    .stNumberInput input,
+    .stTextArea textarea {{
+        color: black !important;
+        background-color: rgba(255,255,255,0.9) !important;
+    }}
 
-        /* Dataframe text */
-        .stDataFrame {{
-            color: white !important;
-        }}
+    /* Placeholder text (light gray) */
+    ::placeholder {{
+        color: #444 !important;
+        opacity: 1 !important;
+    }}
 
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
+    /* === SELECTBOX (black text) === */
+    .stSelectbox div[data-baseweb="select"] * {{
+        color: black !important;
+    }}
+
+    /* Dropdown menu options */
+    ul[role="listbox"] li {{
+        color: black !important;
+    }}
+
+    /* === DATAFRAME TEXT (white) === */
+    .stDataFrame {{
+        color: white !important;
+    }}
+
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 set_background("assets/background.png")
 
