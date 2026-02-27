@@ -103,7 +103,10 @@ def set_background(image_path):
             font-weight: 600 !important;
         }}
     
-        
+        /* Radio-valg skal være hvite */
+        .stRadio div[role="radiogroup"] label {{
+            color: white !important;
+        }}
     
         /* === DARK DATAFRAME === */
         .stDataFrame tbody tr td {{
