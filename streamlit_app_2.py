@@ -42,7 +42,7 @@ def set_background(image_path):
     st.markdown(
     f"""
     <style>
-
+    
         /* === Background Image === */
         .stApp {{
             background-image: url("data:image/jpg;base64,{encoded}");
