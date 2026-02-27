@@ -135,6 +135,12 @@ def set_background(image_path):
         .stCheckbox label > div > div {{
             color: white !important;
         }}
+
+        /* Info-bokser (st.info, st.warning, st.error): hvit tekst */
+        .stAlert [data-testid="stMarkdownContainer"] {{
+            color: white !important;
+        }}
+
     
     </style>
     """,
