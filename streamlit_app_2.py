@@ -126,12 +126,12 @@ def set_background(image_path):
         }}
     
         /* === RADIO BUTTON TEXT (white) === */
-        .stRadio div[role="radiogroup"] > div > label {{
+        .stRadio div[role="radiogroup"] p {{
             color: white !important;
         }}
     
         /* === CHECKBOX TEXT (white) === */
-        .stCheckbox > label > div[data-testid="stMarkdownContainer"] {{
+        .stCheckbox > p{{
             color: white !important;
         }}
     
