@@ -293,7 +293,7 @@ def generate_excel():
 # MAIN UI
 # -------------------------------------------------
 
-st.markdown('<div class="main-card">', unsafe_allow_html=True)
+
 
 # Image at top
 col1, col2, col3 = st.columns([1, 2, 1])
@@ -716,4 +716,4 @@ if st.session_state.output_rows:
             )
 else:
     st.info("🙃 Ingen slanger lagt til ennå. Velg innføringmodus og fyll inn feltene")
-st.markdown('</div>', unsafe_allow_html=True)
+
