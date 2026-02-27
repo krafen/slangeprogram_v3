@@ -43,76 +43,76 @@ def set_background(image_path):
     f"""
     <style>
 
-    /* === Background Image === */
-    .stApp {{
-        background-image: url("data:image/jpg;base64,{encoded}");
-        background-size: cover;
-        background-position: center;
-        background-attachment: fixed;
-        color: white;
-    }}
-
-    /* Dark overlay */
-    .stApp::before {{
-        content: "";
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.65);
-        z-index: 0;
-    }}
-
-    /* === GLOBAL TEXT (white) === */
-    .stMarkdown, .stText, .stHeader, .stSubheader,
-    label, p, h1, h2, h3, h4, h5, h6 {{
-        color: white !important;
-    }}
-
-    /* === INPUT FIELDS (black text + white background) === */
-    .stTextInput input,
-    .stNumberInput input,
-    .stTextArea textarea {{
-        color: black !important;
-        background-color: rgba(255,255,255,0.9) !important;
-    }}
-
-    /* Placeholder text */
-    ::placeholder {{
-        color: #444 !important;
-        opacity: 1 !important;
-    }}
-
-    /* === SELECTBOX (black text) === */
-    .stSelectbox div[data-baseweb="select"] * {{
-        color: black !important;
-    }}
-
-    /* Dropdown menu options */
-    ul[role="listbox"] li {{
-        color: black !important;
-    }}
-
-    /* === BUTTONS: white box + black text === */
-    .stButton > button {{
-        background-color: white !important;
-        color: black !important;
-        border: 1px solid #ccc !important;
-        padding: 0.6rem 1.2rem !important;
-        border-radius: 6px !important;
-        font-weight: 600 !important;
-    }}
-
-    .stButton > button:hover {{
-        background-color: #f2f2f2 !important;
-        border: 1px solid #999 !important;
-        color: black !important;
-    }}
-
-    /* === DATAFRAME TEXT (white) === */
-    .stDataFrame {{
-        color: white !important;
-    }}
-
-</style>
+        /* === Background Image === */
+        .stApp {{
+            background-image: url("data:image/jpg;base64,{encoded}");
+            background-size: cover;
+            background-position: center;
+            background-attachment: fixed;
+            color: white;
+        }}
+    
+        /* Dark overlay */
+        .stApp::before {{
+            content: "";
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.65);
+            z-index: 0;
+        }}
+    
+        /* === GLOBAL TEXT (white) === */
+        .stMarkdown, .stText, .stHeader, .stSubheader,
+        label, p, h1, h2, h3, h4, h5, h6 {{
+            color: white !important;
+        }}
+    
+        /* === INPUT FIELDS (black text + white background) === */
+        .stTextInput input,
+        .stNumberInput input,
+        .stTextArea textarea {{
+            color: black !important;
+            background-color: rgba(255,255,255,0.9) !important;
+        }}
+    
+        /* Placeholder text */
+        ::placeholder {{
+            color: #444 !important;
+            opacity: 1 !important;
+        }}
+    
+        /* === SELECTBOX (black text) === */
+        .stSelectbox div[data-baseweb="select"] * {{
+            color: black !important;
+        }}
+    
+        /* Dropdown menu options */
+        ul[role="listbox"] li {{
+            color: black !important;
+        }}
+    
+        /* === BUTTONS: white box + black text === */
+        .stButton > button {{
+            background-color: white !important;
+            color: black !important;
+            border: 1px solid #ccc !important;
+            padding: 0.6rem 1.2rem !important;
+            border-radius: 6px !important;
+            font-weight: 600 !important;
+        }}
+    
+        .stButton > button:hover {{
+            background-color: #f2f2f2 !important;
+            border: 1px solid #999 !important;
+            color: black !important;
+        }}
+    
+        /* === DATAFRAME TEXT (white) === */
+        .stDataFrame {{
+            color: white !important;
+        }}
+    
+    </style>
     """,
     unsafe_allow_html=True
 )
