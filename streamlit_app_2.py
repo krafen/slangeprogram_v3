@@ -33,6 +33,8 @@ st.set_page_config(page_title="Slangeprogram", layout="wide", page_icon="assets/
 
 
 
+
+
 def set_background(image_path):
     with open(image_path, "rb") as img_file:
         encoded = base64.b64encode(img_file.read()).decode()
@@ -58,32 +60,11 @@ def set_background(image_path):
             background: rgba(0, 0, 0, 0.65);
             z-index: 0;
         }}
-        
-        
 
-       /* === DEFAULT TEXT WHITE === */
-        body, .stApp, p, span, div, h1, h2, h3, h4, h5, h6, label {{
+        /* Force ALL text to white */
+        html, body, p, span, div, label,
+        h1, h2, h3, h4, h5, h6 {{
             color: white !important;
-        }}
-        
-        /* === INPUT FIELDS (text typed by user) === */
-        input, textarea {{
-            color: black !important;
-        }}
-        
-        /* === SELECTBOX (selected value) === */
-        div[data-baseweb="select"] > div {{
-            color: black !important;
-        }}
-        
-        /* === SELECTBOX DROPDOWN MENU OPTIONS === */
-        ul[role="listbox"] li {{
-            color: black !important;
-        }}
-        
-        /* === NUMBER INPUT TEXT === */
-        input[type="number"] {{
-            color: black !important;
         }}
 
         /* Make Streamlit widgets readable */
