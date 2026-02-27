@@ -62,11 +62,12 @@ def set_background(image_path):
     }}
 
     /* === GLOBAL TEXT (white) === */
-    .stMarkdown, .stText, .stHeader, .stSubheader, label, p, h1, h2, h3, h4, h5, h6 {{
+    .stMarkdown, .stText, .stHeader, .stSubheader,
+    label, p, h1, h2, h3, h4, h5, h6 {{
         color: white !important;
     }}
 
-    /* === INPUT FIELDS (black text) === */
+    /* === INPUT FIELDS (black text + white background) === */
     .stTextInput input,
     .stNumberInput input,
     .stTextArea textarea {{
@@ -74,7 +75,7 @@ def set_background(image_path):
         background-color: rgba(255,255,255,0.9) !important;
     }}
 
-    /* Placeholder text (light gray) */
+    /* Placeholder text */
     ::placeholder {{
         color: #444 !important;
         opacity: 1 !important;
@@ -90,20 +91,28 @@ def set_background(image_path):
         color: black !important;
     }}
 
+    /* === BUTTONS: white box + black text === */
+    .stButton > button {{
+        background-color: white !important;
+        color: black !important;
+        border: 1px solid #ccc !important;
+        padding: 0.6rem 1.2rem !important;
+        border-radius: 6px !important;
+        font-weight: 600 !important;
+    }}
+
+    .stButton > button:hover {{
+        background-color: #f2f2f2 !important;
+        border: 1px solid #999 !important;
+        color: black !important;
+    }}
+
     /* === DATAFRAME TEXT (white) === */
     .stDataFrame {{
         color: white !important;
     }}
-    /* === BUTTON TEXT BLACK === */
-        .stButton > button:hover {{
-        background-color: white !important;
-        color: black !important;
-        border: 1px solid #aaa !important;
-    }}
 
-
-
-    </style>
+</style>
     """,
     unsafe_allow_html=True
 )
