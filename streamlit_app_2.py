@@ -36,7 +36,7 @@ def set_background():
 
         /* === Full Page Background === */
         .stApp {
-            background-image: url("https://www.google.com/url?sa=t&source=web&rct=j&url=https%3A%2F%2Fwww.hydrapipe.no%2F&ved=0CBYQjRxqFwoTCOCii8TM-ZIDFQAAAAAdAAAAABAI&opi=89978449
+            background-image: url("https://images.unsplash.com/photo-1581092919535-7146ff1dcb9d")
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
