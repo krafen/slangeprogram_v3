@@ -93,7 +93,7 @@ def set_background(image_path):
     
         /* === BUTTONS: white box + black text === */
         .stButton > button {{
-            background-color: white !important;
+            /*background-color: white !important;
             color: black !important;
             border: 1px solid #ccc !important;
             padding: 0.6rem 1.2rem !important;
