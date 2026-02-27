@@ -36,19 +36,18 @@ def set_background(image_path):
     with open(image_path, "rb") as img_file:
         encoded = base64.b64encode(img_file.read()).decode()
 
-    st.markdown(
+    sst.markdown(
         f"""
         <style>
-
-        /* === Background Image === */
+    
         .stApp {{
             background-image: url("data:image/jpg;base64,{encoded}");
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
+            color: white;
         }}
-
-        /* Dark overlay */
+    
         .stApp::before {{
             content: "";
             position: fixed;
@@ -56,8 +55,7 @@ def set_background(image_path):
             background: rgba(0, 0, 0, 0.45);
             z-index: 0;
         }}
-
-        /* Single continuous white container */
+    
         .main-card {{
             background: white;
             padding: 3rem;
@@ -67,8 +65,9 @@ def set_background(image_path):
             margin: 3rem auto 4rem auto;
             position: relative;
             z-index: 1;
+            color: #1f2a44;
         }}
-
+    
         </style>
         """,
         unsafe_allow_html=True
@@ -293,7 +292,7 @@ def generate_excel():
 # MAIN UI
 # -------------------------------------------------
 
-
+st.markdown('<div class="main-card">', unsafe_allow_html=True)
 
 # Image at top
 col1, col2, col3 = st.columns([1, 2, 1])
@@ -716,4 +715,4 @@ if st.session_state.output_rows:
             )
 else:
     st.info("🙃 Ingen slanger lagt til ennå. Velg innføringmodus og fyll inn feltene")
-
+st.markdown('</div>', unsafe_allow_html=True)
