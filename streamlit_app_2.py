@@ -49,10 +49,7 @@ def set_background(image_path):
             background-size: cover;
             background-position: center;
             background-attachment: fixed;
-            
         }}
-        
-        
     
         /* Dark overlay */
         .stApp::before {{
@@ -95,14 +92,19 @@ def set_background(image_path):
     
         /* === BUTTONS: white box + black text === */
         .stButton > button {{
-            /*background-color: white !important;
+            background-color: white !important;
             color: black !important;
             border: 1px solid #ccc !important;
             padding: 0.6rem 1.2rem !important;
             border-radius: 6px !important;
             font-weight: 600 !important;
         }}
-
+    
+        .stButton > button:hover {{
+            background-color: #f2f2f2 !important;
+            border: 1px solid #999 !important;
+            color: black !important;
+        }}
     
         /* === DARK DATAFRAME === */
         .stDataFrame tbody tr td {{
@@ -122,14 +124,14 @@ def set_background(image_path):
         .stDataFrame tbody tr:hover td {{
             background-color: rgba(255,255,255,0.1) !important;
         }}
-
-        /* Radio-valg skal være hvite */
-        .stRadio div[role="radiogroup"] label {{
+    
+        /* === RADIO BUTTON TEXT (white) === */
+        .stRadio div[role="radiogroup"] > div > label {{
             color: white !important;
         }}
-        
-        /* Checkbox-tekst skal være hvit */
-        .stCheckbox label {{
+    
+        /* === CHECKBOX TEXT (white) === */
+        .stCheckbox > label > div[data-testid="stMarkdownContainer"] {{
             color: white !important;
         }}
     
