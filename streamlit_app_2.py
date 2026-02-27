@@ -58,8 +58,8 @@ def set_background(image_path):
             background: rgba(0, 0, 0, 0.65);
             z-index: 0;
         }}
-        html, body, [class*="css"] {{
-            color: white !important;
+        input, textarea, .stSelectbox div[data-baseweb="select"] {{
+            background-color: rgba(0,0,0,0.6) !important;
         }}
 
         /* Force ALL text to white */
