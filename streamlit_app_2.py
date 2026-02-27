@@ -141,6 +141,15 @@ def set_background(image_path):
             color: white !important;
         }}
 
+        /* Fjern hvit toppstripe (Streamlit header) */
+        header[data-testid="stHeader"] {{
+            background: transparent !important;
+        }}
+        
+        header[data-testid="stHeader"]::before {{
+            background: transparent !important;
+        }}
+
     
     </style>
     """,
