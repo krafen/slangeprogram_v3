@@ -42,7 +42,7 @@ def set_background(image_path):
     st.markdown(
     f"""
     <style>
-    
+
         /* === Background Image === */
         .stApp {{
             background-image: url("data:image/jpg;base64,{encoded}");
@@ -107,9 +107,23 @@ def set_background(image_path):
             color: black !important;
         }}
     
-        /* === DATAFRAME TEXT (white) === */
-        .stDataFrame {{
+        /* === DARK DATAFRAME === */
+        .stDataFrame tbody tr td {{
             color: white !important;
+            background-color: rgba(0,0,0,0.6) !important;
+        }}
+    
+        .stDataFrame thead tr th {{
+            color: white !important;
+            background-color: rgba(0,0,0,0.8) !important;
+        }}
+    
+        .stDataFrame tbody tr {{
+            border-bottom: 1px solid rgba(255,255,255,0.2) !important;
+        }}
+    
+        .stDataFrame tbody tr:hover td {{
+            background-color: rgba(255,255,255,0.1) !important;
         }}
     
     </style>
