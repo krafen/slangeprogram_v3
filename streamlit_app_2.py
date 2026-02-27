@@ -84,7 +84,7 @@ def set_background(image_path):
         unsafe_allow_html=True
     )
 
-set_background()
+set_background("assets/background.jpg")
 
 FIRST_FILE = "Slanger_hylser.xlsx"
 SECOND_FILE = "kuplinger_316.xlsx"
