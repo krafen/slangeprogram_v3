@@ -63,7 +63,7 @@ def set_background(image_path):
     
         /* === GLOBAL TEXT (white) === */
         .stMarkdown, .stText, .stHeader, .stSubheader,
-        label, p, h1, h2, h3, h4, h5, h6 {{
+        label, h1, h2, h3, h4, h5, h6 {{
             color: white !important;
         }}
     
