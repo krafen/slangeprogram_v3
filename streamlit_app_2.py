@@ -58,31 +58,33 @@ def set_background(image_path):
             background: rgba(0, 0, 0, 0.65);
             z-index: 0;
         }}
+        
+        
 
-        /* === DEFAULT TEXT WHITE === */
-        body, .stApp, p, span, div, h1, h2, h3, h4, h5, h6, label {
+       /* === DEFAULT TEXT WHITE === */
+        body, .stApp, p, span, div, h1, h2, h3, h4, h5, h6, label {{
             color: white !important;
-        }
+        }}
         
         /* === INPUT FIELDS (text typed by user) === */
-        input, textarea {
+        input, textarea {{
             color: black !important;
-        }
+        }}
         
         /* === SELECTBOX (selected value) === */
-        div[data-baseweb="select"] > div {
+        div[data-baseweb="select"] > div {{
             color: black !important;
-        }
+        }}
         
         /* === SELECTBOX DROPDOWN MENU OPTIONS === */
-        ul[role="listbox"] li {
+        ul[role="listbox"] li {{
             color: black !important;
-        }
+        }}
         
         /* === NUMBER INPUT TEXT === */
-        input[type="number"] {
+        input[type="number"] {{
             color: black !important;
-        }
+        }}
 
         /* Make Streamlit widgets readable */
         .stTextInput > div > div > input,
