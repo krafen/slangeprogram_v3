@@ -503,16 +503,19 @@ if st.session_state.input_mode == "quick":
             selected_row, second_row1, second_row2, sheet_name_found, size_str, length_int = core.find_matches_from_summary(
                 first_line, df1, df2_all, material_pref=material
             )
-    if input_linje and inputlinje:
+    
+        # Sett kundes_del_nr riktig
+        if input_linje and inputlinje:
             pressure_details["kundes_del_nr"] = inputlinje
-
-            process_and_add_hose(
-                selected_row, second_row1, second_row2, sheet_name_found, size_str,
-                length_int, material, lager, pos_mark, posnr, input_linje, inputlinje, pressure_test,
-                pressure_details, antall_slanger, prikling=prikling, first_line=first_line
-            )
-
-            st.success(f"✅ Slange lagt til! ({len(st.session_state.output_rows)} rader)")
+    
+        # 🚀 Denne må ALLTID kjøres, uansett input_linje
+        process_and_add_hose(
+            selected_row, second_row1, second_row2, sheet_name_found, size_str,
+            length_int, material, lager, pos_mark, posnr, input_linje, inputlinje, pressure_test,
+            pressure_details, antall_slanger, prikling=prikling, first_line=first_line
+        )
+    
+        st.success(f"✅ Slange lagt til! ({len(st.session_state.output_rows)} rader)")
 
 
 # -------------------------------------------------
