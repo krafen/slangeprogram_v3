@@ -773,7 +773,7 @@ elif st.session_state.input_mode == "full":
         "kunde": "",
         "kundens_best_nr": "",
         "hydra_ordre_nr": "",
-        "kundes_del_nr": inputlinje,
+        "kundes_del_nr": "",
         "antall_slanger": antall_slanger,
         "angle": angle
     }
@@ -787,13 +787,14 @@ elif st.session_state.input_mode == "full":
             pressure_details["kundens_best_nr"] = st.text_input("Kundens best. Nr.", key="full_best_nr")
         with col2:
             pressure_details["hydra_ordre_nr"] = st.text_input("Hydra Pipe ordre nr.", key="full_hydra_ordre")
-            #pressure_details["kundes_del_nr"] = st.text_input("Kundes del nr.", key="full_del_nr")
+            pressure_details["kundes_del_nr"] = st.text_input("Kundes del nr.", key="full_del_nr")
 
         # Add to order
     if st.button("✅ Legg til slange", use_container_width=True, key="full_add_btn"):
         # Update pressure_details with angle for certificate
         pressure_details["angle"] = angle
-        
+        if input_linje and inputlinje:
+            pressure_details["kundes_del_nr"] = inputlinje
         process_and_add_hose(
             selected_row, row_c1, row_c2, sheet_name, size,
             length, material, lager, pos_mark, posnr, input_linje, inputlinje, pressure_test,
