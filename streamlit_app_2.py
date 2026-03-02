@@ -408,7 +408,7 @@ with col1:
         key="mode_radio"
     )
 # Update session state based on selection
-if mode_choice == "Skriv inn Slangebeskrivelse":
+if mode_choice == "⌨️ Skriv inn Slangebeskrivelse":
     st.session_state.input_mode = "quick"
 else:
     st.session_state.input_mode = "full"
