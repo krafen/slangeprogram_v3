@@ -780,8 +780,8 @@ elif st.session_state.input_mode == "full":
 
     if pressure_test:
         st.subheader("📋 Trykktest Detaljer")
-        col1= st.columns(2)
-        col2 = st.columns(1)
+        col1, col2= st.columns(2)
+        
         with col1:
             pressure_details["kunde"] = st.text_input("Kunde", key="full_kunde")
             pressure_details["kundens_best_nr"] = st.text_input("Kundens best. Nr.", key="full_best_nr")
