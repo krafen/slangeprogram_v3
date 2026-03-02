@@ -222,7 +222,7 @@ if "full_df2" not in st.session_state:
 
 def process_and_add_hose(selected_row, second_row1, second_row2, sheet_name_found, size_str, 
                         length_int, material, lager, pos_mark, posnr, pressure_test, 
-                        pressure_details, antall_slanger, first_line="", angle=""):
+                        pressure_details, antall_slanger,prikling=False, first_line="", angle=""):
     """Process hose data and add to output rows"""
     rows = []
 
@@ -295,6 +295,16 @@ def process_and_add_hose(selected_row, second_row1, second_row2, sheet_name_foun
     mont_row = core.get_mont_row(size_str, sheet_key, mont_df)
     if mont_row is not None:
         rows.append([mont_row["Prod.no"], mont_row["Beskrivelse"], int(lager), 1])
+    # --- Add Prikling if selected ---
+    if prikling and size_str:
+        prikling_row = core.get_prikling_row(size_str, prikling_df)
+        if prikling_row is not None:
+            rows.append([
+                prikling_row["Prod.no"],
+                prikling_row["Beskrivelse"],
+                int(lager),
+                1
+            ])
 
     if pressure_test:
         trykktest_row = core.get_trykktest_prodno(size_str, length_int or 1000, trykktest_df)
@@ -442,7 +452,15 @@ if st.session_state.input_mode == "quick":
             posnr = ""
 
     st.divider()
-    pressure_test = st.checkbox("🚰 Skal slangen trykkteststes?", key="quick_pressure_test")
+    # --- Prikling ---
+    prikling = st.checkbox("🪛 Prikling?", key="full_prikling")
+    
+    # --- Trykktest ---
+    if type_approval:
+        pressure_test = True
+        st.checkbox("🚰 Skal slangen trykktestes?", value=True, disabled=True, key="full_pressure_test")
+    else:
+        pressure_test = st.checkbox("🚰 Skal slangen trykktestes?", key="full_pressure_test")
 
     pressure_details = {
         "kunde": "",
@@ -474,7 +492,7 @@ if st.session_state.input_mode == "quick":
             process_and_add_hose(
                 selected_row, second_row1, second_row2, sheet_name_found, size_str,
                 length_int, material, lager, pos_mark, posnr, pressure_test,
-                pressure_details, antall_slanger, first_line=first_line
+                pressure_details, antall_slanger, prikling=prikling, first_line=first_line
             )
 
             st.success(f"✅ Slange lagt til! ({len(st.session_state.output_rows)} rader)")
@@ -723,7 +741,15 @@ elif st.session_state.input_mode == "full":
 
     # Pressure test
     st.divider()
-    pressure_test = st.checkbox("🚰 Skal slangen trykkteststes?", key="full_pressure_test")
+    # --- Prikling ---
+    prikling = st.checkbox("🪛 Prikling?", key="full_prikling")
+    
+    # --- Trykktest ---
+    if type_approval:
+        pressure_test = True
+        st.checkbox("🚰 Skal slangen trykktestes?", value=True, disabled=True, key="full_pressure_test")
+    else:
+        pressure_test = st.checkbox("🚰 Skal slangen trykktestes?", key="full_pressure_test")
 
     pressure_details = {
         "kunde": "",
@@ -752,7 +778,7 @@ elif st.session_state.input_mode == "full":
         process_and_add_hose(
             selected_row, row_c1, row_c2, sheet_name, size,
             length, material, lager, pos_mark, posnr, pressure_test,
-            pressure_details, antall_slanger, first_line="", angle=angle
+            pressure_details, antall_slanger, prikling=prikling, first_line="", angle=angle
         )
 
         # Reset selections
