@@ -1,3 +1,4 @@
+
 # -*- coding: utf-8 -*-
 """
 Slangeprogram - Streamlit Version
@@ -429,7 +430,7 @@ if st.session_state.input_mode == "quick":
     col1, col2, col3 = st.columns([1, 2, 1])
 
     with col1:
-        pos_mark = st.checkbox("Merke med POS.nr?", key="quick_pos_mark")
+        pos_mark = st.checkbox("Merke med POS.nr?",key="quick_pos_mark_checkbox")
     
     with col2:
         if pos_mark:
@@ -456,7 +457,7 @@ if st.session_state.input_mode == "quick":
 
     col1, col2 = st.columns([1, 2])
     with col1:
-        pos_mark = st.checkbox("Merke med POS.nr?", key="quick_pos_mark")
+        pos_mark = st.checkbox("Merke med POS.nr?", key="full_pos_mark_checkbox")
     with col2:
         if pos_mark:
             posnr = st.text_input("POS.nr", value=str(st.session_state.pos_counter), key="quick_posnr")
