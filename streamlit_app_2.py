@@ -424,7 +424,7 @@ if st.session_state.input_mode == "quick":
     col1, col2 = st.columns([2, 1])
 
     with col1:
-        first_line = st.text_input("Slangebeskrivelse (Bindestreker må være med 😒)", placeholder="Slange/Lengde/Kupling 1/Kupling 2", key="quick_first_line")
+        first_line = st.text_input("Slangebeskrivelse (Bindestreker må være med 😒)", placeholder="Slange/Lengde/Kupling 1/Kupling 2 (f.eks M2T-06/500/HP333-12-06-316/HP334-12-06-316", key="quick_first_line")
 
     with col2:
         material = st.selectbox("Materiale", ["stål", "syrefast"], key="quick_material")
