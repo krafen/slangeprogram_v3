@@ -112,7 +112,8 @@ def get_mont_row(size, sheet_key, mont_df):
     if "5-316" in sheet_key:
         return mont_df.iloc[3]
 
-    if "st" in sheet_key:
+    # Treat st, GS, GSM, and M-st the same
+    if any(x in sheet_key for x in ["st", "gs", "gsm", "m-st"]):
         if size in ["12", "16"]:
             return mont_df.iloc[1]
         if size in ["20", "24", "32"]:
