@@ -221,7 +221,7 @@ if "full_df2" not in st.session_state:
 # -------------------------------------------------
 
 def process_and_add_hose(selected_row, second_row1, second_row2, sheet_name_found, size_str, 
-                        length_int, material, lager, pos_mark, posnr, input_linje, inputlinje pressure_test, 
+                        length_int, material, lager, pos_mark, posnr, input_linje, inputlinje, pressure_test, 
                         pressure_details, antall_slanger,prikling=False, first_line="", angle=""):
     """Process hose data and add to output rows"""
     rows = []
