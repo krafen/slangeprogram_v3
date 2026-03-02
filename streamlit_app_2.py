@@ -403,7 +403,7 @@ col1, col2 = st.columns(2)
 with col1:
     mode_choice = st.radio(
         "Vil du skrive inn slangebeskrivelse eller velge slanger og kuplinger",
-        options=["Skriv inn Slangebeskrivelse", "Velg Slange og Kuplinger"],
+        options=["⌨️ Skriv inn Slangebeskrivelse", "🖱 Velg Slange og Kuplinger"],
         index=0,
         key="mode_radio"
     )
