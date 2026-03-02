@@ -30,12 +30,6 @@ st.set_page_config(page_title="Slangeprogram", layout="wide", page_icon="assets/
 # CUSTOM STYLING
 # -------------------------------------------------
 
-
-
-
-
-
-
 def set_background(image_path):
     with open(image_path, "rb") as img_file:
         encoded = base64.b64encode(img_file.read()).decode()
@@ -223,7 +217,7 @@ if "full_df2" not in st.session_state:
 
 def process_and_add_hose(selected_row, second_row1, second_row2, sheet_name_found, size_str, 
                         length_int, material, lager, pos_mark, posnr, pressure_test, 
-                        pressure_details, antall_slanger, prikling=False, user_display_text="", first_line="", angle=""):
+                        pressure_details, antall_slanger, prikling=False, user_display_text=user_input_text_quick, first_line="", angle=""):
     """Process hose data and add to output rows"""
     rows = []
 
@@ -737,10 +731,23 @@ elif st.session_state.input_mode == "full":
         pos_mark = st.checkbox("Merke med POS.nr?", key="full_pos_mark")
         show_user_line = st.checkbox("Vis inputlinje?", key="full_show_user_line")
     
-    if pos_mark:
-        posnr = st.text_input("POS.nr", value=str(st.session_state.pos_counter), key="full_posnr")
+    with col3:
+    pos_mark_full = st.checkbox("Merke med POS.nr?", key="full_pos_checkbox")
+    show_user_line_full = st.checkbox("Vis inputlinje?", key="full_show_input_checkbox")
+
+    if pos_mark_full:
+        posnr_full = st.text_input("POS.nr", value=str(st.session_state.pos_counter), key="full_posnr")
     else:
-        posnr = ""
+        posnr_full = ""
+    
+    if show_user_line_full:
+        user_input_text_full = st.text_input(
+            "Inputlinje tekst",
+            value="",
+            key="full_user_input_text"
+        )
+    else:
+        user_input_text_full = ""
 
     # Check if either coupling has angle (45 or 90)
     has_angle_c1 = "45" in str(row_c1["Beskrivelse"]) or "90" in str(row_c1["Beskrivelse"])
@@ -793,7 +800,7 @@ elif st.session_state.input_mode == "full":
         process_and_add_hose(
             selected_row, row_c1, row_c2, sheet_name, size,
             length, material, lager, pos_mark, posnr, pressure_test,
-            pressure_details, antall_slanger, prikling=prikling, user_display_text=user_display if show_user_line else "", first_line="", angle=angle
+            pressure_details, antall_slanger, prikling=prikling, user_display_text=user_input_text_full, first_line="", angle=angle
         )
 
         # Reset selections
