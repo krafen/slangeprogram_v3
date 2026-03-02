@@ -221,7 +221,7 @@ if "full_df2" not in st.session_state:
 # -------------------------------------------------
 
 def process_and_add_hose(selected_row, second_row1, second_row2, sheet_name_found, size_str, 
-                        length_int, material, lager, pos_mark, posnr, pressure_test, 
+                        length_int, material, lager, pos_mark, posnr, input_linje, inputlinje pressure_test, 
                         pressure_details, antall_slanger,prikling=False, first_line="", angle=""):
     """Process hose data and add to output rows"""
     rows = []
@@ -232,6 +232,12 @@ def process_and_add_hose(selected_row, second_row1, second_row2, sheet_name_foun
             st.session_state.pos_counter = int(posnr) + 1
         except:
             pass
+    
+    if input_linje and inputlinje:
+        rows.append(["1", f"{inputlinje}", int(lager), 1])
+        
+        
+    
 
     if first_line:
         # Quick mode - just use the first line as-is
@@ -451,6 +457,15 @@ if st.session_state.input_mode == "quick":
         else:
             posnr = ""
 
+    col3, col4 = st.columns([1, 2])
+    with col1:
+        input_linje = st.checkbox("MRK: ", key="quick_input_linje")
+    with col2:
+        if input_linje:
+            inputlinje = st.text_input("MRK: ", key="quick_inputlinje")
+        else:
+            inputlinje = ""
+
     st.divider()
     # --- Prikling ---
     prikling = st.checkbox("🪛 Prikling?", key="full_prikling")
@@ -491,7 +506,7 @@ if st.session_state.input_mode == "quick":
 
             process_and_add_hose(
                 selected_row, second_row1, second_row2, sheet_name_found, size_str,
-                length_int, material, lager, pos_mark, posnr, pressure_test,
+                length_int, material, lager, pos_mark, posnr, input_linje, inputlinje, pressure_test,
                 pressure_details, antall_slanger, prikling=prikling, first_line=first_line
             )
 
@@ -709,7 +724,7 @@ elif st.session_state.input_mode == "full":
     st.divider()
     st.subheader("3️⃣ Innstillinger")
 
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(3)
 
     with col1:
         lager = st.selectbox("Lager",
@@ -727,6 +742,14 @@ elif st.session_state.input_mode == "full":
         posnr = st.text_input("POS.nr", value=str(st.session_state.pos_counter), key="full_posnr")
     else:
         posnr = ""
+
+    with col4:
+        input_linje = st.checkbox("MRK linje", key="full_input_linje")
+
+    if input_linje:
+        inputlinje = st.text_input("MRK:",  key="full_inputlinje")
+    else:
+        inputlinje = ""    
 
     # Check if either coupling has angle (45 or 90)
     has_angle_c1 = "45" in str(row_c1["Beskrivelse"]) or "90" in str(row_c1["Beskrivelse"])
@@ -777,7 +800,7 @@ elif st.session_state.input_mode == "full":
         
         process_and_add_hose(
             selected_row, row_c1, row_c2, sheet_name, size,
-            length, material, lager, pos_mark, posnr, pressure_test,
+            length, material, lager, pos_mark, posnr, input_linje, inputlinje, pressure_test,
             pressure_details, antall_slanger, prikling=prikling, first_line="", angle=angle
         )
 
