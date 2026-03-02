@@ -222,7 +222,7 @@ if "full_df2" not in st.session_state:
 
 def process_and_add_hose(selected_row, second_row1, second_row2, sheet_name_found, size_str, 
                         length_int, material, lager, pos_mark, posnr, pressure_test, 
-                        pressure_details, antall_slanger,prikling=False, first_line="", angle=""):
+                        pressure_details, antall_slanger, prikling=False, user_display_text="", first_line="", angle=""):
     """Process hose data and add to output rows"""
     rows = []
 
@@ -232,8 +232,10 @@ def process_and_add_hose(selected_row, second_row1, second_row2, sheet_name_foun
             st.session_state.pos_counter = int(posnr) + 1
         except:
             pass
-
-    if first_line:
+    # --- User display row ---
+    if user_display_text:
+        rows.append(["1", user_display_text, int(lager), 1])
+        if first_line:
         # Quick mode - just use the first line as-is
         rows.append(["1", first_line, int(lager), 1])
     else:
@@ -420,13 +422,19 @@ else:
 if st.session_state.input_mode == "quick":
     st.header("➕ Skriv in Slangebeskrivelse")
 
-    col1, col2 = st.columns([2, 1])
+    col1, col2, col3 = st.columns([1, 2, 1])
 
     with col1:
-        first_line = st.text_input("Slangebeskrivelse (Bindestreker må være med 😒)", placeholder="Slange/Lengde/Kupling 1/Kupling 2", key="quick_first_line")
-
+        pos_mark = st.checkbox("Merke med POS.nr?", key="quick_pos_mark")
+    
     with col2:
-        material = st.selectbox("Materiale", ["stål", "syrefast"], key="quick_material")
+        if pos_mark:
+            posnr = st.text_input("POS.nr", value=str(st.session_state.pos_counter), key="quick_posnr")
+        else:
+            posnr = ""
+    
+    with col3:
+        show_user_line = st.checkbox("Vis inputlinje?", key="quick_show_user_line")
 
     col1, col2, col3 = st.columns(3)
 
@@ -492,7 +500,7 @@ if st.session_state.input_mode == "quick":
             process_and_add_hose(
                 selected_row, second_row1, second_row2, sheet_name_found, size_str,
                 length_int, material, lager, pos_mark, posnr, pressure_test,
-                pressure_details, antall_slanger, prikling=prikling, first_line=first_line
+                pressure_details, antall_slanger, prikling=prikling, user_display_text=first_line if show_user_line else "" first_line=first_line
             )
 
             st.success(f"✅ Slange lagt til! ({len(st.session_state.output_rows)} rader)")
@@ -722,7 +730,8 @@ elif st.session_state.input_mode == "full":
 
     with col3:
         pos_mark = st.checkbox("Merke med POS.nr?", key="full_pos_mark")
-
+        show_user_line = st.checkbox("Vis inputlinje?", key="full_show_user_line")
+    
     if pos_mark:
         posnr = st.text_input("POS.nr", value=str(st.session_state.pos_counter), key="full_posnr")
     else:
@@ -772,13 +781,14 @@ elif st.session_state.input_mode == "full":
 
         # Add to order
     if st.button("✅ Legg til slange", use_container_width=True, key="full_add_btn"):
+        user_display = f"{selected_row['Beskrivelse']}/{length}/{row_c1['Beskrivelse']}/{row_c2['Beskrivelse']}"
         # Update pressure_details with angle for certificate
         pressure_details["angle"] = angle
         
         process_and_add_hose(
             selected_row, row_c1, row_c2, sheet_name, size,
             length, material, lager, pos_mark, posnr, pressure_test,
-            pressure_details, antall_slanger, prikling=prikling, first_line="", angle=angle
+            pressure_details, antall_slanger, prikling=prikling, user_display_text=user_display if show_user_line else "", first_line="", angle=angle
         )
 
         # Reset selections
