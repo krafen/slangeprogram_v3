@@ -504,7 +504,7 @@ if st.session_state.input_mode == "quick":
             process_and_add_hose(
                 selected_row, second_row1, second_row2, sheet_name_found, size_str,
                 length_int, material, lager, pos_mark, posnr, pressure_test,
-                pressure_details, antall_slanger, prikling=prikling, user_display_text=first_line if show_user_line else "", first_line=first_line
+                pressure_details, antall_slanger, prikling=prikling, user_display_text=first_line if show_user_line else "" first_line=first_line
             )
 
             st.success(f"✅ Slange lagt til! ({len(st.session_state.output_rows)} rader)")
