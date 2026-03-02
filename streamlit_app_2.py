@@ -457,7 +457,7 @@ if st.session_state.input_mode == "quick":
         input_linje = st.checkbox("Skal slangen merkes med noe? ", key="quick_input_linje")
     with col2:
         if input_linje:
-            inputlinje = st.text_input("MRK (f.eks kundens produktnummer): ", key="quick_inputlinje")
+            inputlinje = st.text_input("MRK: ", key="quick_inputlinje")
         else:
             inputlinje = ""
 
@@ -489,7 +489,7 @@ if st.session_state.input_mode == "quick":
             pressure_details["kundens_best_nr"] = st.text_input("Kundens best. Nr.", key="quick_best_nr")
         with col2:
             pressure_details["hydra_ordre_nr"] = st.text_input("Hydra Pipe ordre nr.", key="quick_hydra_ordre")
-            pressure_details["kundes_del_nr"] = inputlinje
+            pressure_details["kundes_del_nr"] = st.text_input("Kundes del nr.", key="quick_del_nr")
 
     if st.button("✅ Legg til slange", use_container_width=True, key="quick_add_btn"):
         if not first_line:
@@ -742,7 +742,7 @@ elif st.session_state.input_mode == "full":
         input_linje = st.checkbox("Skal slangen merkes med noe?", key="full_input_linje")
 
     if input_linje:
-        inputlinje = st.text_input("MRK (f.eks kundens produktnummer):",  key="full_inputlinje")
+        inputlinje = st.text_input("MRK:",  key="full_inputlinje")
     else:
         inputlinje = ""    
 
@@ -773,7 +773,7 @@ elif st.session_state.input_mode == "full":
         "kunde": "",
         "kundens_best_nr": "",
         "hydra_ordre_nr": "",
-        "kundes_del_nr": inputlinje,
+        "kundes_del_nr": "",
         "antall_slanger": antall_slanger,
         "angle": angle
     }
