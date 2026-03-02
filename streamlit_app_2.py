@@ -787,7 +787,11 @@ elif st.session_state.input_mode == "full":
             pressure_details["kundens_best_nr"] = st.text_input("Kundens best. Nr.", key="full_best_nr")
         with col2:
             pressure_details["hydra_ordre_nr"] = st.text_input("Hydra Pipe ordre nr.", key="full_hydra_ordre")
-            #pressure_details["kundes_del_nr"] = st.text_input("Kundes del nr.", key="full_del_nr")
+            # Hvis input_linje er valgt, skal kundes_del_nr IKKE vises som inputfelt
+            if input_linje and inputlinje:
+                pressure_details["kundes_del_nr"] = inputlinje
+            else:
+                pressure_details["kundes_del_nr"] = st.text_input("Kundes del nr.", key="full_del_nr")
 
         # Add to order
     if st.button("✅ Legg til slange", use_container_width=True, key="full_add_btn"):
