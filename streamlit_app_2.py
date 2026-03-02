@@ -476,7 +476,7 @@ if st.session_state.input_mode == "quick":
         "kunde": "",
         "kundens_best_nr": "",
         "hydra_ordre_nr": "",
-        "kundes_del_nr": "",
+        "kundes_del_nr": inputlinje,
         "antall_slanger": antall_slanger,
         "angle": ""
     }
@@ -773,20 +773,21 @@ elif st.session_state.input_mode == "full":
         "kunde": "",
         "kundens_best_nr": "",
         "hydra_ordre_nr": "",
-        "kundes_del_nr": "",
+        "kundes_del_nr": inputlinje,
         "antall_slanger": antall_slanger,
         "angle": angle
     }
 
     if pressure_test:
         st.subheader("📋 Trykktest Detaljer")
-        col1, col2 = st.columns(2)
+        col1= st.columns(2)
+        col2 = st.columns(1)
         with col1:
             pressure_details["kunde"] = st.text_input("Kunde", key="full_kunde")
             pressure_details["kundens_best_nr"] = st.text_input("Kundens best. Nr.", key="full_best_nr")
         with col2:
             pressure_details["hydra_ordre_nr"] = st.text_input("Hydra Pipe ordre nr.", key="full_hydra_ordre")
-            pressure_details["kundes_del_nr"] = st.text_input("Kundes del nr.", key="full_del_nr")
+            #pressure_details["kundes_del_nr"] = st.text_input("Kundes del nr.", key="full_del_nr")
 
         # Add to order
     if st.button("✅ Legg til slange", use_container_width=True, key="full_add_btn"):
