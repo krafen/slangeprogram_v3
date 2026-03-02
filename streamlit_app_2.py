@@ -30,11 +30,6 @@ st.set_page_config(page_title="Slangeprogram", layout="wide", page_icon="assets/
 # -------------------------------------------------
 
 
-
-
-
-
-
 def set_background(image_path):
     with open(image_path, "rb") as img_file:
         encoded = base64.b64encode(img_file.read()).decode()
@@ -459,7 +454,7 @@ if st.session_state.input_mode == "quick":
 
     col3, col4 = st.columns([1, 2])
     with col1:
-        input_linje = st.checkbox("MRK: ", key="quick_input_linje")
+        input_linje = st.checkbox("Skal slangen merkes med noe? ", key="quick_input_linje")
     with col2:
         if input_linje:
             inputlinje = st.text_input("MRK: ", key="quick_inputlinje")
@@ -744,7 +739,7 @@ elif st.session_state.input_mode == "full":
         posnr = ""
 
     with col4:
-        input_linje = st.checkbox("MRK linje", key="full_input_linje")
+        input_linje = st.checkbox("Skal slangen merkes med noe?", key="full_input_linje")
 
     if input_linje:
         inputlinje = st.text_input("MRK:",  key="full_inputlinje")
