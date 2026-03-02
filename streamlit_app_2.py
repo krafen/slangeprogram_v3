@@ -254,19 +254,7 @@ def process_and_add_hose(selected_row, second_row1, second_row2, sheet_name_foun
             first_line_display = f"{part1}/{part2}/{part3}/{part4}"
     
         rows.append(["1", first_line_display, int(lager), 1])
-    else:
-        # Full mode - build first line from components with angle if provided
-        part1 = str(selected_row["Beskrivelse"])[:7] if selected_row is not None else ""
-        part2 = str(length_int if length_int else "")
-        part3 = str(second_row1["Beskrivelse"])[:9 if material == "stål" else 15] if second_row1 is not None else ""
-        part4 = str(second_row2["Beskrivelse"])[:9 if material == "stål" else 15] if second_row2 is not None else ""
-        
-        if angle and angle.strip():
-            first_line_display = f"{part1}/{part2}/{part3}/{part4}/{angle}°"
-        else:
-            first_line_display = f"{part1}/{part2}/{part3}/{part4}"
-        rows.append(["1", first_line_display, int(lager), 1])
-
+    
     # Add products
     if selected_row is not None:
         try:
