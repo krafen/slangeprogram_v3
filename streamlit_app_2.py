@@ -724,7 +724,7 @@ elif st.session_state.input_mode == "full":
     st.divider()
     st.subheader("3️⃣ Innstillinger")
 
-    col1, col2, col3, col4 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
 
     with col1:
         lager = st.selectbox("Lager",
