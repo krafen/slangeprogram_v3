@@ -233,12 +233,9 @@ def process_and_add_hose(selected_row, second_row1, second_row2, sheet_name_foun
         except:
             pass
     # --- User display row ---
-   
     if user_display_text:
         rows.append(["1", user_display_text, int(lager), 1])
-    
-    # --- Generated first line ---
-    if first_line:
+        if first_line:
         # Quick mode - just use the first line as-is
         rows.append(["1", first_line, int(lager), 1])
     else:
@@ -252,9 +249,8 @@ def process_and_add_hose(selected_row, second_row1, second_row2, sheet_name_foun
             first_line_display = f"{part1}/{part2}/{part3}/{part4}/{angle}°"
         else:
             first_line_display = f"{part1}/{part2}/{part3}/{part4}"
-    
         rows.append(["1", first_line_display, int(lager), 1])
-    
+
     # Add products
     if selected_row is not None:
         try:
