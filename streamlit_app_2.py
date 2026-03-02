@@ -476,7 +476,7 @@ if st.session_state.input_mode == "quick":
         "kunde": "",
         "kundens_best_nr": "",
         "hydra_ordre_nr": "",
-        "kundes_del_nr": inputlinje,
+        "kundes_del_nr": "",
         "antall_slanger": antall_slanger,
         "angle": ""
     }
@@ -489,7 +489,12 @@ if st.session_state.input_mode == "quick":
             pressure_details["kundens_best_nr"] = st.text_input("Kundens best. Nr.", key="quick_best_nr")
         with col2:
             pressure_details["hydra_ordre_nr"] = st.text_input("Hydra Pipe ordre nr.", key="quick_hydra_ordre")
-            pressure_details["kundes_del_nr"] = st.text_input("Kundes del nr.", key="quick_del_nr")
+            # Hvis input_linje er valgt → bruk inputlinje som kundes_del_nr og ikke vis feltet
+            if input_linje and inputlinje:
+                pressure_details["kundes_del_nr"] = inputlinje
+            else:
+                # Vis feltet for kundes_del_nr kun hvis input_linje IKKE er valgt
+                pressure_details["kundes_del_nr"] = st.text_input("Kundes del nr.", key="quick_del_nr")
 
     if st.button("✅ Legg til slange", use_container_width=True, key="quick_add_btn"):
         if not first_line:
@@ -498,6 +503,8 @@ if st.session_state.input_mode == "quick":
             selected_row, second_row1, second_row2, sheet_name_found, size_str, length_int = core.find_matches_from_summary(
                 first_line, df1, df2_all, material_pref=material
             )
+        if input_linje and inputlinje:
+        pressure_details["kundes_del_nr"] = inputlinje
 
             process_and_add_hose(
                 selected_row, second_row1, second_row2, sheet_name_found, size_str,
