@@ -565,7 +565,7 @@ if st.session_state.input_mode == "quick":
 # -------------------------------------------------
 # FULL MODE
 # -------------------------------------------------
-st.write("Sheet used:", sheet_name_found)
+
 elif st.session_state.input_mode == "full":
 
     st.header("📝 Velg Slange og Kuplinger")
@@ -590,7 +590,8 @@ elif st.session_state.input_mode == "full":
     
     dnv_col = "Type Approval"
     abs_col = "Type Approval1"
-    
+    st.write("Sheet used:", sheet_name_found)
+    st.write("Available sheets:", pd.ExcelFile(FIRST_FILE).sheet_names)
     if type_approval and type_approval1:
         # BOTH required
         filtered_df = filtered_df[
