@@ -565,7 +565,7 @@ if st.session_state.input_mode == "quick":
 # -------------------------------------------------
 # FULL MODE
 # -------------------------------------------------
-
+st.write("Sheet used:", sheet_name_found)
 elif st.session_state.input_mode == "full":
 
     st.header("📝 Velg Slange og Kuplinger")
