@@ -180,11 +180,16 @@ try:
 except Exception as e:
     st.error(f"❌ Kunne ikke laste data: {str(e)}")
     st.stop()
-
+abs_sert_df = core.clean_columns(
+    pd.read_excel(FIRST_FILE, sheet_name="ABS Sert.")
+)
 
 # -------------------------------------------------
 # SESSION STATE
 # -------------------------------------------------
+
+if "abs_selected_any" not in st.session_state:
+    st.session_state.abs_selected_any = False
 
 if "output_rows" not in st.session_state:
     st.session_state.output_rows = []
@@ -214,7 +219,9 @@ if "full_df2" not in st.session_state:
 # -------------------------------------------------
 # HELPER FUNCTIONS
 # -------------------------------------------------
-
+if st.session_state.get("full_abs", False):
+    st.session_state.abs_selected_any = True
+    
 def process_and_add_hose(selected_row, second_row1, second_row2, sheet_name_found, size_str, 
                         length_int, material, lager, pos_mark, posnr, input_linje, inputlinje, pressure_test, 
                         pressure_details, antall_slanger,prikling=False, first_line="", angle=""):
@@ -332,9 +339,30 @@ def process_and_add_hose(selected_row, second_row1, second_row2, sheet_name_foun
             "pressure_details": pressure_details
         })
 def generate_excel():
-    """Generate Excel file with all sheets"""
+    rows_for_excel = [r.copy() for r in st.session_state.output_rows]
+
+    # -------------------------------------------------
+    # ADD ABS CERT ROW (ONLY ONCE, ALWAYS AT BOTTOM)
+    # -------------------------------------------------
+    
+    if st.session_state.abs_selected_any and not abs_sert_df.empty:
+    
+        lager_value = rows_for_excel[-1][2] if rows_for_excel else 3
+    
+        # spacer line
+        rows_for_excel.append(["1", "", lager_value, ""])
+    
+        abs_row = abs_sert_df.iloc[0]
+    
+        rows_for_excel.append([
+            abs_row.get("Prod.no", ""),
+            abs_row.get("Beskrivelse", ""),
+            lager_value,
+            1
+        ])
+    
     output_wb = core.create_output_workbook(
-        [[r[0], r[1], r[2], r[3]] for r in st.session_state.output_rows]
+        [[r[0], r[1], r[2], r[3]] for r in rows_for_excel]
     )
 
     if st.session_state.certificate_data_list:
@@ -429,7 +457,7 @@ if st.session_state.input_mode == "quick":
     with col2:
         material = st.selectbox("Materiale", ["stål", "syrefast"], key="quick_material")
 
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
 
     with col1:
         lager = st.selectbox("Lager",
@@ -442,6 +470,9 @@ if st.session_state.input_mode == "quick":
 
     with col3:
         type_approval = st.checkbox("Type Approval (DNV)?", key="quick_type_approval")
+        
+    with col4:
+        type_approval1 = st.checkbox("Type Approval (ABS)?", key="quick_type_approval1")
 
     col1, col2 = st.columns([1, 2])
     with col1:
@@ -466,11 +497,19 @@ if st.session_state.input_mode == "quick":
     prikling = st.checkbox("🪛 Skal slangen prikles?", key="full_prikling")
     
     # --- Trykktest ---
-    if type_approval:
+    if type_approval or type_approval1:
         pressure_test = True
-        st.checkbox("🚰 Skal slangen trykktestes?", value=True, disabled=True, key="full_pressure_test")
+        st.checkbox(
+            "🚰 Skal slangen trykktestes?",
+            value=True,
+            disabled=True,
+            key="quick_pressure_test"
+        )
     else:
-        pressure_test = st.checkbox("🚰 Skal slangen trykktestes?", key="full_pressure_test")
+        pressure_test = st.checkbox(
+            "🚰 Skal slangen trykktestes?",
+            key="quick_pressure_test"
+        )
 
     pressure_details = {
         "kunde": "",
@@ -507,6 +546,9 @@ if st.session_state.input_mode == "quick":
         # Sett kundes_del_nr riktig
         if input_linje and inputlinje:
             pressure_details["kundes_del_nr"] = inputlinje
+            
+        if type_approval1:
+            st.session_state.type_approval1 = True
     
         # 🚀 Denne må ALLTID kjøres, uansett input_linje
         process_and_add_hose(
@@ -515,6 +557,8 @@ if st.session_state.input_mode == "quick":
             pressure_details, antall_slanger, prikling=prikling, first_line=first_line
         )
     
+        if type_approval1:
+            st.session_state.abs_selected_any = True
         st.success(f"✅ Slange lagt til! ({len(st.session_state.output_rows)} rader)")
 
 
@@ -531,32 +575,43 @@ elif st.session_state.input_mode == "full":
     # Type Approval FIRST - before search and table
     col1, col2 = st.columns([2, 1])
     with col1:
-        pass  # spacer
+        type_approval1 = st.checkbox("Type Approval (ABS)?", key="full_type_approval1")
     with col2:
         type_approval = st.checkbox("Type Approval (DNV)?", key="full_type_approval")
 
     # Search hose
     search = st.text_input("Søk etter slange", key="full_search")
 
-    # Filter by Type Approval if checked
+    # -------------------------------------------------
+    # TYPE APPROVAL FILTERING (DNV + ABS)
+    # -------------------------------------------------
+    
     filtered_df = df1.copy()
     
-    if type_approval:
-        # Filter for DNV only
-        dnv_col = None
-        for cname in filtered_df.columns:
-            if "DNV" in cname or "Type Approval" in cname:
-                dnv_col = cname
-                break
-        
-        if dnv_col is not None:
-            filtered_df = filtered_df[filtered_df[dnv_col].astype(str).str.contains("DNV", na=False)]
-        else:
-            # Fallback: try column index 9 (common location for DNV column)
-            try:
-                filtered_df = filtered_df[filtered_df.iloc[:, 9].astype(str).str.contains("DNV", na=False)]
-            except:
-                pass
+    dnv_col = "Type Approval"
+    abs_col = "Type Approval1"
+    
+    if type_approval and type_approval1:
+        # BOTH required
+        filtered_df = filtered_df[
+            filtered_df[dnv_col].fillna("").astype(str).str.strip().ne("") &
+            filtered_df[abs_col].fillna("").astype(str).str.strip().ne("")
+        ]
+    
+    elif type_approval:
+        # Only DNV
+        filtered_df = filtered_df[
+            filtered_df[dnv_col].fillna("").astype(str).str.strip().ne("")
+        ]
+    
+    elif type_approval1:
+        # Only ABS
+        filtered_df = filtered_df[
+            filtered_df[abs_col].fillna("").astype(str).str.strip().ne("")
+        ]
+    
+    # else: no filtering
+
 
     # Apply search filter
     if search:
@@ -773,11 +828,20 @@ elif st.session_state.input_mode == "full":
     prikling = st.checkbox("🪛 Skal slangen prikles?", key="full_prikling")
     
     # --- Trykktest ---
-    if type_approval:
+    # --- Trykktest ---
+    if type_approval or type_approval1:
         pressure_test = True
-        st.checkbox("🚰 Skal slangen trykktestes?", value=True, disabled=True, key="full_pressure_test")
+        st.checkbox(
+            "🚰 Skal slangen trykktestes?",
+            value=True,
+            disabled=True,
+            key="full_pressure_test"
+        )
     else:
-        pressure_test = st.checkbox("🚰 Skal slangen trykktestes?", key="full_pressure_test")
+        pressure_test = st.checkbox(
+            "🚰 Skal slangen trykktestes?",
+            key="full_pressure_test"
+        )
 
     pressure_details = {
         "kunde": "",
@@ -819,7 +883,10 @@ elif st.session_state.input_mode == "full":
         st.session_state.selected_hose_row = None
         st.session_state.selected_c1_row = None
         st.session_state.selected_c2_row = None
-
+        
+        if type_approval1:
+            st.session_state.abs_selected_any = True
+        
         st.success(f"✅ Slange lagt til! ({len(st.session_state.output_rows)} rader)")
         
         
@@ -846,6 +913,7 @@ if st.session_state.output_rows:
         if st.button("🧹 Tøm alt", use_container_width=True):
             st.session_state.output_rows = []
             st.session_state.certificate_data_list = []
+            st.session_state.abs_selected_any = False
             st.rerun()
 
     with col3:
