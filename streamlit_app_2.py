@@ -613,41 +613,77 @@ elif st.session_state.input_mode == "full":
     # else: no filtering
 
 
-    # Apply search filter
+    # -------------------------------------------------
+    # APPLY SEARCH FILTER
+    # -------------------------------------------------
+    
     if search:
         filtered_df = filtered_df[
             filtered_df["Beskrivelse_2"]
             .astype(str)
             .str.contains(search, case=False, na=False)
         ]
-
+    
     st.write("**Velg slange fra tabellen under:**")
-    event = st.dataframe(
-        filtered_df[["Prod.no", "Beskrivelse_2", "Dimensjon", "Trykk(bar)"]],
-        use_container_width=True,
-        hide_index=True,
-        on_select="rerun",
-        selection_mode="single-row",
-        key="hose_table"
-    )
-
-    # Check if row was selected
-    if event.selection and event.selection["rows"]:
+    
+    event = None
+    
+    # -------------------------------------------------
+    # TABLE DISPLAY (only if rows exist)
+    # -------------------------------------------------
+    
+    if filtered_df.empty:
+        st.info("Ingen treff.")
+    else:
+        event = st.dataframe(
+            filtered_df[["Prod.no", "Beskrivelse_2", "Dimensjon", "Trykk(bar)"]],
+            use_container_width=True,
+            hide_index=True,
+            on_select="rerun",
+            selection_mode="single-row",
+            key="hose_table"
+        )
+    
+    # -------------------------------------------------
+    # TABLE SELECTION (SAFE)
+    # -------------------------------------------------
+    
+    if (
+        event
+        and event.selection
+        and event.selection.get("rows")
+    ):
         selected_idx = event.selection["rows"][0]
-        selected_prod_no = filtered_df.iloc[selected_idx]["Prod.no"]
-        st.session_state.selected_hose_row = df1[df1["Prod.no"] == selected_prod_no].iloc[0]
-
-    # Manual selection fallback
-    if st.session_state.selected_hose_row is None:
+    
+        if selected_idx < len(filtered_df):
+            selected_row = filtered_df.iloc[selected_idx]
+            st.session_state.selected_hose_row = selected_row
+    
+    # -------------------------------------------------
+    # MANUAL FALLBACK (SAFE)
+    # -------------------------------------------------
+    
+    if (
+        st.session_state.selected_hose_row is None
+        and not filtered_df.empty
+    ):
         selected_prod_no = st.selectbox(
             "Eller velg slange (Prod.no)",
             options=filtered_df["Prod.no"].unique(),
             key="full_hose_select"
         )
-        st.session_state.selected_hose_row = df1[df1["Prod.no"] == selected_prod_no].iloc[0]
-
-    selected_row = st.session_state.selected_hose_row
-    st.success(f"✅ Valgt: {selected_row['Beskrivelse_2']}")
+    
+        match = df1[df1["Prod.no"] == selected_prod_no]
+        if not match.empty:
+            st.session_state.selected_hose_row = match.iloc[0]
+    
+    # -------------------------------------------------
+    # FINAL CONFIRMATION (SAFE)
+    # -------------------------------------------------
+    
+    if st.session_state.selected_hose_row is not None:
+        selected_row = st.session_state.selected_hose_row
+        st.success(f"✅ Valgt: {selected_row['Beskrivelse_2']}")
 
     # Options (moved AFTER selection)
     col1, col2, col3 = st.columns(3)
