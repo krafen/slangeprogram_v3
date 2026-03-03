@@ -454,10 +454,10 @@ if st.session_state.input_mode == "quick":
 
     col3, col4 = st.columns([1, 2])
     with col1:
-        input_linje = st.checkbox("Skal du legge inn kundens delnummer? ", key="quick_input_linje")
+        input_linje = st.checkbox("Kundes delnummer? ", key="quick_input_linje")
     with col2:
         if input_linje:
-            inputlinje = st.text_input("Kundens delnummer:", key="quick_inputlinje")
+            inputlinje = st.text_input("Kundes delnummer:", key="quick_inputlinje")
         else:
             inputlinje = ""
 
@@ -749,10 +749,10 @@ elif st.session_state.input_mode == "full":
         posnr = ""
 
     with col4:
-        input_linje = st.checkbox("Skal du legge inn kundens delnummer?", key="full_input_linje")
+        input_linje = st.checkbox("Kundes delnummer?", key="full_input_linje")
 
     if input_linje:
-        inputlinje = st.text_input("Kundens delnummer: ",  key="full_inputlinje")
+        inputlinje = st.text_input("Kundes delnummer: ",  key="full_inputlinje")
     else:
         inputlinje = ""    
 
