@@ -463,7 +463,7 @@ if st.session_state.input_mode == "quick":
 
     st.divider()
     # --- Prikling ---
-    prikling = st.checkbox("🪛 Skal slanmgen prikles?", key="full_prikling")
+    prikling = st.checkbox("🪛 Skal slangen prikles?", key="full_prikling")
     
     # --- Trykktest ---
     if type_approval:
