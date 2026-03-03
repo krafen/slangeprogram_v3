@@ -414,7 +414,7 @@ def generate_excel():
 # MAIN UI
 # -------------------------------------------------
 
-
+st.write("Sheet used:", sheet_name_found)
 
 
 # Image at top
