@@ -603,7 +603,7 @@ elif st.session_state.input_mode == "full":
         filtered_df = filtered_df[
             filtered_df[dnv_col].fillna("").astype(str).str.strip().ne("")
         ]
-    
+    st.write("Columns in df1:", df1.columns.tolist())
     elif type_approval1:
         # Only ABS
         filtered_df = filtered_df[
