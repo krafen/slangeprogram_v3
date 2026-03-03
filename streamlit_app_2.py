@@ -587,11 +587,11 @@ elif st.session_state.input_mode == "full":
     # -------------------------------------------------
     
     filtered_df = df1.copy()
-    
-    dnv_col = "Type Approval"
-    abs_col = "Type Approval1"
     st.write("Sheet used:", sheet_name_found)
     st.write("Available sheets:", pd.ExcelFile(FIRST_FILE).sheet_names)
+    dnv_col = "Type Approval"
+    abs_col = "Type Approval1"
+    
     if type_approval and type_approval1:
         # BOTH required
         filtered_df = filtered_df[
