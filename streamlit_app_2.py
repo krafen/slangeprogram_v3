@@ -585,7 +585,7 @@ elif st.session_state.input_mode == "full":
     # -------------------------------------------------
     # TYPE APPROVAL FILTERING (DNV + ABS)
     # -------------------------------------------------
-    
+    st.write("Columns in df1:", df1.columns.tolist())
     filtered_df = df1.copy()
     
     dnv_col = "Type Approval"
@@ -603,7 +603,7 @@ elif st.session_state.input_mode == "full":
         filtered_df = filtered_df[
             filtered_df[dnv_col].fillna("").astype(str).str.strip().ne("")
         ]
-    st.write("Columns in df1:", df1.columns.tolist())
+    
     elif type_approval1:
         # Only ABS
         filtered_df = filtered_df[
