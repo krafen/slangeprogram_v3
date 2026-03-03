@@ -587,8 +587,7 @@ elif st.session_state.input_mode == "full":
     # -------------------------------------------------
     
     filtered_df = df1.copy()
-    st.write("Sheet used:", sheet_name_found)
-    st.write("Available sheets:", pd.ExcelFile(FIRST_FILE).sheet_names)
+    
     dnv_col = "Type Approval"
     abs_col = "Type Approval1"
     
