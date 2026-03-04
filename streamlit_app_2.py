@@ -1071,6 +1071,9 @@ elif st.session_state.input_mode == "full":
 st.divider()
 st.header("📊 Foreløpig slangestruktur i Visma")
 
+if type_approval1 is True:
+    st.info("For ABS gokjenning trengs det bevitnelse av trykktesting ")
+
 if st.session_state.output_rows:
     output_df = pd.DataFrame(st.session_state.output_rows, columns=["Prod.no", "Beskrivelse", "Lager", "Antall"])
     st.dataframe(output_df, use_container_width=True, hide_index=True)
