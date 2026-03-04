@@ -618,6 +618,7 @@ elif st.session_state.input_mode == "full":
     # -------------------------------------------------
     
     if search:
+        st.session_state.selected_hose_row = None
         filtered_df = filtered_df[
             filtered_df["Beskrivelse_2"]
             .astype(str)
@@ -627,6 +628,7 @@ elif st.session_state.input_mode == "full":
     st.write("**Velg slange fra tabellen under:**")
     
     event = None
+    selected_row = None
     
     # -------------------------------------------------
     # TABLE DISPLAY (only if rows exist)
@@ -659,32 +661,20 @@ elif st.session_state.input_mode == "full":
             selected_row = filtered_df.iloc[selected_idx]
             st.session_state.selected_hose_row = selected_row
     
+
     # -------------------------------------------------
-    # MANUAL FALLBACK (SAFE)
-    # -------------------------------------------------
-    
-    if (
-        st.session_state.selected_hose_row is None
-        and not filtered_df.empty
-    ):
-        selected_prod_no = st.selectbox(
-            "Eller velg slange (Prod.no)",
-            options=filtered_df["Prod.no"].unique(),
-            key="full_hose_select"
-        )
-    
-        match = df1[df1["Prod.no"] == selected_prod_no]
-        if not match.empty:
-            st.session_state.selected_hose_row = match.iloc[0]
-    
-    # -------------------------------------------------
-    # FINAL CONFIRMATION (SAFE)
+    # FINAL STATUS
     # -------------------------------------------------
     
     if st.session_state.selected_hose_row is not None:
         selected_row = st.session_state.selected_hose_row
         st.success(f"✅ Valgt: {selected_row['Beskrivelse_2']}")
-
+    else:
+        st.warning("⚠️ Du må velge slange fra tabellen.")
+    
+    
+    
+    
     # Options (moved AFTER selection)
     col1, col2, col3 = st.columns(3)
 
@@ -697,233 +687,235 @@ elif st.session_state.input_mode == "full":
     with col3:
         st.write("")  # spacer
 
-    size = str(selected_row["Dimensjon"]).zfill(2)
+    if selected_row is not None:
 
-    # Determine sheet_name based on type approval and material
-    if material == "syrefast":
-        try:
-            slange_hylse_df = core.clean_columns(pd.read_excel(FIRST_FILE, sheet_name="Slange+Hylse"))
-            prod_no = selected_row.get("Prod.no")
-            match = slange_hylse_df.loc[slange_hylse_df["Prod.no"] == prod_no]
-            if not match.empty and len(slange_hylse_df.columns) > 11:
-                col_l_val = str(match.iloc[0, 11])
-                if "5" in col_l_val:
-                    sheet_name = f"Kuplinger {size}(5-316)"
-                else:
-                    sheet_name = f"Kuplinger {size}(316)"
-            else:
-                sheet_name = f"Kuplinger {size}(316)"
-        except:
-            sheet_name = f"Kuplinger {size}(316)"
-    else:  # stål
-        type_approval_val = type_approval
-        gates_in_k = False
-        
-        # Check for Type Approval with Gates in column K
-        if type_approval_val:
+        size = str(selected_row["Dimensjon"]).zfill(2)
+    
+        # Determine sheet_name based on type approval and material
+        if material == "syrefast":
             try:
                 slange_hylse_df = core.clean_columns(pd.read_excel(FIRST_FILE, sheet_name="Slange+Hylse"))
                 prod_no = selected_row.get("Prod.no")
                 match = slange_hylse_df.loc[slange_hylse_df["Prod.no"] == prod_no]
-                if not match.empty and len(slange_hylse_df.columns) > 10:
-                    col_k_val = str(match.iloc[0, 10])
-                    if "Gates" in col_k_val:
-                        gates_in_k = True
-            except:
-                pass
-        
-        # Determine sheet key
-        if type_approval_val and gates_in_k:
-            sheet_key = "(M-st)"
-            sheet_name = f"Kuplinger {size}(M-st)"
-        else:
-            desc = str(selected_row.get("Beskrivelse", ""))
-            if len(desc) > 2 and desc[0] == "G" and desc[2] == "K":
-                if desc.startswith("G5K-24") or desc.startswith("G6K-24"):
-                    sheet_name = f"Kuplinger {size}(GSM)"
+                if not match.empty and len(slange_hylse_df.columns) > 11:
+                    col_l_val = str(match.iloc[0, 11])
+                    if "5" in col_l_val:
+                        sheet_name = f"Kuplinger {size}(5-316)"
+                    else:
+                        sheet_name = f"Kuplinger {size}(316)"
                 else:
-                    sheet_name = f"Kuplinger {size}(GS)"
+                    sheet_name = f"Kuplinger {size}(316)"
+            except:
+                sheet_name = f"Kuplinger {size}(316)"
+        else:  # stål
+            type_approval_val = type_approval
+            gates_in_k = False
+            
+            # Check for Type Approval with Gates in column K
+            if type_approval_val:
+                try:
+                    slange_hylse_df = core.clean_columns(pd.read_excel(FIRST_FILE, sheet_name="Slange+Hylse"))
+                    prod_no = selected_row.get("Prod.no")
+                    match = slange_hylse_df.loc[slange_hylse_df["Prod.no"] == prod_no]
+                    if not match.empty and len(slange_hylse_df.columns) > 10:
+                        col_k_val = str(match.iloc[0, 10])
+                        if "Gates" in col_k_val:
+                            gates_in_k = True
+                except:
+                    pass
+            
+            # Determine sheet key
+            if type_approval_val and gates_in_k:
+                sheet_key = "(M-st)"
+                sheet_name = f"Kuplinger {size}(M-st)"
             else:
-                sheet_name = f"Kuplinger {size}(st)"
+                desc = str(selected_row.get("Beskrivelse", ""))
+                if len(desc) > 2 and desc[0] == "G" and desc[2] == "K":
+                    if desc.startswith("G5K-24") or desc.startswith("G6K-24"):
+                        sheet_name = f"Kuplinger {size}(GSM)"
+                    else:
+                        sheet_name = f"Kuplinger {size}(GS)"
+                else:
+                    sheet_name = f"Kuplinger {size}(st)"
 
-    if sheet_name not in df2_all:
-        st.error(f"Fant ikke ark: {sheet_name}")
-        st.stop()
-
-    df2 = df2_all[sheet_name]
-    st.session_state.full_df2 = df2
-
-    # -------------------------------------------------
-    # COUPLINGS
-    # -------------------------------------------------
-
-    st.divider()
-    st.subheader("2️⃣ Velg kuplinger")
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-        st.write("**Kupling 1**")
-        st.write("Velg kupling fra tabellen:")
-        event1 = st.dataframe(
-            df2[["Prod.no", "Beskrivelse"]],
-            use_container_width=True,
-            hide_index=True,
-            on_select="rerun",
-            selection_mode="single-row",
-            key="coupling1_table"
-        )
-        
-        if event1.selection and event1.selection["rows"]:
-            selected_idx1 = event1.selection["rows"][0]
-            selected_c1_prod = df2.iloc[selected_idx1]["Prod.no"]
-            st.session_state.selected_c1_row = df2[df2["Prod.no"] == selected_c1_prod].iloc[0]
-        
-        if st.session_state.selected_c1_row is not None:
-            st.write(f"✅ Valgt: *{st.session_state.selected_c1_row['Beskrivelse']}*")
-        else:
-            st.info("Velg kupling fra tabellen")
-
-    with col2:
-        st.write("**Kupling 2**")
-        st.write("Velg kupling fra tabellen:")
-        event2 = st.dataframe(
-            df2[["Prod.no", "Beskrivelse"]],
-            use_container_width=True,
-            hide_index=True,
-            on_select="rerun",
-            selection_mode="single-row",
-            key="coupling2_table"
-        )
-        
-        if event2.selection and event2.selection["rows"]:
-            selected_idx2 = event2.selection["rows"][0]
-            selected_c2_prod = df2.iloc[selected_idx2]["Prod.no"]
-            st.session_state.selected_c2_row = df2[df2["Prod.no"] == selected_c2_prod].iloc[0]
-        
-        if st.session_state.selected_c2_row is not None:
-            st.write(f"✅ Valgt: *{st.session_state.selected_c2_row['Beskrivelse']}*")
-        else:
-            st.info("Velg kupling fra tabellen")
-
-    if st.session_state.selected_c1_row is None or st.session_state.selected_c2_row is None:
-        st.warning("⚠️ Du må velge kuplinger i begge ender")
-        st.stop()
-
-    row_c1 = st.session_state.selected_c1_row
-    row_c2 = st.session_state.selected_c2_row
-
+        if sheet_name not in df2_all:
+            st.error(f"Fant ikke ark: {sheet_name}")
+            st.stop()
+    
+        df2 = df2_all[sheet_name]
+        st.session_state.full_df2 = df2
+    
         # -------------------------------------------------
-    # ADDITIONAL OPTIONS
-    # -------------------------------------------------
-
-    st.divider()
-    st.subheader("3️⃣ Innstillinger")
-
-    col1, col2, col3, col4 = st.columns(4)
-
-    with col1:
-        lager = st.selectbox("Lager",
-                             options=["3", "1", "5"],
-                             format_func=lambda x: {"3": "Lillestrøm", "1": "Ålesund", "5": "Trondheim"}[x],
-                             key="full_lager")
-
-    with col2:
-        antall_slanger = st.number_input("Antall slanger", min_value=1, value=1, key="full_antall")
-
-    with col3:
-        pos_mark = st.checkbox("Merke med POS.nr?", key="full_pos_mark")
-
-    if pos_mark:
-        posnr = st.text_input("POS.nr", value=str(st.session_state.pos_counter), key="full_posnr")
-    else:
-        posnr = ""
-
-    with col4:
-        input_linje = st.checkbox("Merke med kundes delnummer?", key="full_input_linje")
-
-    if input_linje:
-        inputlinje = st.text_input("Kundes delnummer: ",  key="full_inputlinje")
-    else:
-        inputlinje = ""    
-
-    # Check if either coupling has angle (45 or 90)
-    has_angle_c1 = "45" in str(row_c1["Beskrivelse"]) or "90" in str(row_c1["Beskrivelse"])
-    has_angle_c2 = "45" in str(row_c2["Beskrivelse"]) or "90" in str(row_c2["Beskrivelse"])
+        # COUPLINGS
+        # -------------------------------------------------
     
-    # Show angle input only if one of the couplings has angle
-    angle = ""
-    if has_angle_c1 and has_angle_c2:
         st.divider()
-        st.subheader("📐 Vinkel")
-        angle = st.text_input("Skriv inn vinkel", key="full_angle")
-
-    # Pressure test
-    st.divider()
-    # --- Prikling ---
-    prikling = st.checkbox("🪛 Skal slangen prikles?", key="full_prikling")
+        st.subheader("2️⃣ Velg kuplinger")
     
-    # --- Trykktest ---
-    # --- Trykktest ---
-    if type_approval or type_approval1:
-        pressure_test = True
-        st.checkbox(
-            "🚰 Skal slangen trykktestes?",
-            value=True,
-            disabled=True,
-            key="full_pressure_test"
-        )
-    else:
-        pressure_test = st.checkbox(
-            "🚰 Skal slangen trykktestes?",
-            key="full_pressure_test"
-        )
-
-    pressure_details = {
-        "kunde": "",
-        "kundens_best_nr": "",
-        "hydra_ordre_nr": "",
-        "kundes_del_nr": "",
-        "antall_slanger": antall_slanger,
-        "angle": angle
-    }
-
-    if pressure_test:
-        st.subheader("📋 Trykktest Detaljer")
-        col1, col2= st.columns(2)
-        
+        col1, col2 = st.columns(2)
+    
         with col1:
-            pressure_details["kunde"] = st.text_input("Kunde", key="full_kunde")
-            pressure_details["kundens_best_nr"] = st.text_input("Kundens best. Nr.", key="full_best_nr")
+            st.write("**Kupling 1**")
+            st.write("Velg kupling fra tabellen:")
+            event1 = st.dataframe(
+                df2[["Prod.no", "Beskrivelse"]],
+                use_container_width=True,
+                hide_index=True,
+                on_select="rerun",
+                selection_mode="single-row",
+                key="coupling1_table"
+            )
+            
+            if event1.selection and event1.selection["rows"]:
+                selected_idx1 = event1.selection["rows"][0]
+                selected_c1_prod = df2.iloc[selected_idx1]["Prod.no"]
+                st.session_state.selected_c1_row = df2[df2["Prod.no"] == selected_c1_prod].iloc[0]
+            
+            if st.session_state.selected_c1_row is not None:
+                st.write(f"✅ Valgt: *{st.session_state.selected_c1_row['Beskrivelse']}*")
+            else:
+                st.info("Velg kupling fra tabellen")
+    
         with col2:
-            pressure_details["hydra_ordre_nr"] = st.text_input("Hydra Pipe ordre nr.", key="full_hydra_ordre")
-            # Hvis input_linje er valgt, skal kundes_del_nr IKKE vises som inputfelt
+            st.write("**Kupling 2**")
+            st.write("Velg kupling fra tabellen:")
+            event2 = st.dataframe(
+                df2[["Prod.no", "Beskrivelse"]],
+                use_container_width=True,
+                hide_index=True,
+                on_select="rerun",
+                selection_mode="single-row",
+                key="coupling2_table"
+            )
+            
+            if event2.selection and event2.selection["rows"]:
+                selected_idx2 = event2.selection["rows"][0]
+                selected_c2_prod = df2.iloc[selected_idx2]["Prod.no"]
+                st.session_state.selected_c2_row = df2[df2["Prod.no"] == selected_c2_prod].iloc[0]
+            
+            if st.session_state.selected_c2_row is not None:
+                st.write(f"✅ Valgt: *{st.session_state.selected_c2_row['Beskrivelse']}*")
+            else:
+                st.info("Velg kupling fra tabellen")
+    
+        if st.session_state.selected_c1_row is None or st.session_state.selected_c2_row is None:
+            st.warning("⚠️ Du må velge kuplinger i begge ender")
+            st.stop()
+    
+        row_c1 = st.session_state.selected_c1_row
+        row_c2 = st.session_state.selected_c2_row
+    
+            # -------------------------------------------------
+        # ADDITIONAL OPTIONS
+        # -------------------------------------------------
+    
+        st.divider()
+        st.subheader("3️⃣ Innstillinger")
+    
+        col1, col2, col3, col4 = st.columns(4)
+    
+        with col1:
+            lager = st.selectbox("Lager",
+                                 options=["3", "1", "5"],
+                                 format_func=lambda x: {"3": "Lillestrøm", "1": "Ålesund", "5": "Trondheim"}[x],
+                                 key="full_lager")
+    
+        with col2:
+            antall_slanger = st.number_input("Antall slanger", min_value=1, value=1, key="full_antall")
+    
+        with col3:
+            pos_mark = st.checkbox("Merke med POS.nr?", key="full_pos_mark")
+    
+        if pos_mark:
+            posnr = st.text_input("POS.nr", value=str(st.session_state.pos_counter), key="full_posnr")
+        else:
+            posnr = ""
+    
+        with col4:
+            input_linje = st.checkbox("Merke med kundes delnummer?", key="full_input_linje")
+    
+        if input_linje:
+            inputlinje = st.text_input("Kundes delnummer: ",  key="full_inputlinje")
+        else:
+            inputlinje = ""    
+    
+        # Check if either coupling has angle (45 or 90)
+        has_angle_c1 = "45" in str(row_c1["Beskrivelse"]) or "90" in str(row_c1["Beskrivelse"])
+        has_angle_c2 = "45" in str(row_c2["Beskrivelse"]) or "90" in str(row_c2["Beskrivelse"])
+        
+        # Show angle input only if one of the couplings has angle
+        angle = ""
+        if has_angle_c1 and has_angle_c2:
+            st.divider()
+            st.subheader("📐 Vinkel")
+            angle = st.text_input("Skriv inn vinkel", key="full_angle")
+    
+        # Pressure test
+        st.divider()
+        # --- Prikling ---
+        prikling = st.checkbox("🪛 Skal slangen prikles?", key="full_prikling")
+        
+        # --- Trykktest ---
+        # --- Trykktest ---
+        if type_approval or type_approval1:
+            pressure_test = True
+            st.checkbox(
+                "🚰 Skal slangen trykktestes?",
+                value=True,
+                disabled=True,
+                key="full_pressure_test"
+            )
+        else:
+            pressure_test = st.checkbox(
+                "🚰 Skal slangen trykktestes?",
+                key="full_pressure_test"
+            )
+    
+        pressure_details = {
+            "kunde": "",
+            "kundens_best_nr": "",
+            "hydra_ordre_nr": "",
+            "kundes_del_nr": "",
+            "antall_slanger": antall_slanger,
+            "angle": angle
+        }
+    
+        if pressure_test:
+            st.subheader("📋 Trykktest Detaljer")
+            col1, col2= st.columns(2)
+            
+            with col1:
+                pressure_details["kunde"] = st.text_input("Kunde", key="full_kunde")
+                pressure_details["kundens_best_nr"] = st.text_input("Kundens best. Nr.", key="full_best_nr")
+            with col2:
+                pressure_details["hydra_ordre_nr"] = st.text_input("Hydra Pipe ordre nr.", key="full_hydra_ordre")
+                # Hvis input_linje er valgt, skal kundes_del_nr IKKE vises som inputfelt
+                if input_linje and inputlinje:
+                    pressure_details["kundes_del_nr"] = inputlinje
+                else:
+                    pressure_details["kundes_del_nr"] = st.text_input("Kundes del nr.", key="full_del_nr")
+    
+            # Add to order
+        if st.button("✅ Legg til slange", use_container_width=True, key="full_add_btn"):
+            # Update pressure_details with angle for certificate
+            pressure_details["angle"] = angle
             if input_linje and inputlinje:
                 pressure_details["kundes_del_nr"] = inputlinje
-            else:
-                pressure_details["kundes_del_nr"] = st.text_input("Kundes del nr.", key="full_del_nr")
-
-        # Add to order
-    if st.button("✅ Legg til slange", use_container_width=True, key="full_add_btn"):
-        # Update pressure_details with angle for certificate
-        pressure_details["angle"] = angle
-        if input_linje and inputlinje:
-            pressure_details["kundes_del_nr"] = inputlinje
-        process_and_add_hose(
-            selected_row, row_c1, row_c2, sheet_name, size,
-            length, material, lager, pos_mark, posnr, input_linje, inputlinje, pressure_test,
-            pressure_details, antall_slanger, prikling=prikling, first_line="", angle=angle
-        )
-
-        # Reset selections
-        st.session_state.selected_hose_row = None
-        st.session_state.selected_c1_row = None
-        st.session_state.selected_c2_row = None
-        
-        if type_approval1:
-            st.session_state.abs_selected_any = True
-        
-        st.success(f"✅ Slange lagt til! ({len(st.session_state.output_rows)} rader)")
+            process_and_add_hose(
+                selected_row, row_c1, row_c2, sheet_name, size,
+                length, material, lager, pos_mark, posnr, input_linje, inputlinje, pressure_test,
+                pressure_details, antall_slanger, prikling=prikling, first_line="", angle=angle
+            )
+    
+            # Reset selections
+            st.session_state.selected_hose_row = None
+            st.session_state.selected_c1_row = None
+            st.session_state.selected_c2_row = None
+            
+            if type_approval1:
+                st.session_state.abs_selected_any = True
+            
+            st.success(f"✅ Slange lagt til! ({len(st.session_state.output_rows)} rader)")
         
         
 # -------------------------------------------------
@@ -953,14 +945,13 @@ if st.session_state.output_rows:
             st.rerun()
 
     with col3:
-        if st.button("⬇️ Last ned Excel", use_container_width=True):
-            excel_buffer = generate_excel()
-            st.download_button(
-                label="⬇️ Last ned Excel",
-                data=excel_buffer,
-                file_name=f"output_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                use_container_width=True
-            )
-else:
+        excel_buffer = generate_excel()
+    
+        st.download_button(
+            label="⬇️ Last ned Excel",
+            data=excel_buffer,
+            file_name=f"output_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True
+        )
     st.info("🙃 Ingen slanger lagt til ennå. Velg måte for å lage slangestruktur og fyll inn feltene")
