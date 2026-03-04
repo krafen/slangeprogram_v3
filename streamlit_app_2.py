@@ -13,7 +13,7 @@ from datetime import datetime
 import io
 import os
 import base64
-
+from st_aggrid import AgGrid, GridOptionsBuilder
 
 import core
 
@@ -38,7 +38,28 @@ def set_background(image_path):
     f"""
     <style>
 
-        /* === Background Image === */
+        
+        
+        /* Add/Update this in your st.markdown block */
+        .ag-theme-streamlit .center-header .ag-header-cell-label {{
+            justify-content: center !important;
+        }}
+        
+        /* This ensures the text itself is centered if it wraps */
+        .ag-theme-streamlit .center-header .ag-header-cell-text {{
+            text-align: center !important;
+            width: 100%;
+        }}
+
+
+        
+
+    
+    
+        /* ============================================================
+           === BAKGRUNN OG GLOBALT UTSEENDE ===
+           ============================================================ */
+    
         .stApp {{
             background-image: url("data:image/jpg;base64,{encoded}");
             background-size: cover;
@@ -46,7 +67,6 @@ def set_background(image_path):
             background-attachment: fixed;
         }}
     
-        /* Dark overlay */
         .stApp::before {{
             content: "";
             position: fixed;
@@ -55,13 +75,16 @@ def set_background(image_path):
             z-index: 0;
         }}
     
-        /* === GLOBAL TEXT (white) === */
+        /* Global hvit tekst */
         .stMarkdown, .stText, .stHeader, .stSubheader,
         label, h1, h2, h3, h4, h5, h6 {{
             color: white !important;
         }}
     
-        /* === INPUT FIELDS (black text + white background) === */
+        /* ============================================================
+           === INPUTFELT ===
+           ============================================================ */
+    
         .stTextInput input,
         .stNumberInput input,
         .stTextArea textarea {{
@@ -69,23 +92,24 @@ def set_background(image_path):
             background-color: rgba(255,255,255,0.9) !important;
         }}
     
-        /* Placeholder text */
         ::placeholder {{
             color: #444 !important;
             opacity: 1 !important;
         }}
     
-        /* === SELECTBOX (black text) === */
+        /* Selectbox */
         .stSelectbox div[data-baseweb="select"] * {{
             color: black !important;
         }}
     
-        /* Dropdown menu options */
         ul[role="listbox"] li {{
             color: black !important;
         }}
     
-        /* === BUTTONS: white box + black text === */
+        /* ============================================================
+           === KNAPPER ===
+           ============================================================ */
+    
         .stButton > button {{
             background-color: white !important;
             color: black !important;
@@ -101,7 +125,10 @@ def set_background(image_path):
             color: black !important;
         }}
     
-        /* === DARK DATAFRAME === */
+        /* ============================================================
+           === DATAFRAME (ikke AG‑Grid) ===
+           ============================================================ */
+    
         .stDataFrame tbody tr td {{
             color: white !important;
             background-color: rgba(0,0,0,0.6) !important;
@@ -120,31 +147,45 @@ def set_background(image_path):
             background-color: rgba(255,255,255,0.1) !important;
         }}
     
-        /* === RADIO BUTTON TEXT (white) === */
+        /* ============================================================
+           === RADIO, CHECKBOX, INFOBOKSER ===
+           ============================================================ */
+    
         .stRadio div[role="radiogroup"] p {{
             color: white !important;
         }}
     
-        
-        /* Checkbox-tekst: hvit tekst (Streamlit 1.31+) */
         .stCheckbox label > div > div {{
             color: white !important;
         }}
-
-        /* Info-bokser (st.info, st.warning, st.error): hvit tekst */
+    
         .stAlert [data-testid="stMarkdownContainer"] {{
             color: white !important;
         }}
-
-        /* Fjern hvit toppstripe (Streamlit header) */
-        header[data-testid="stHeader"] {{
-            background: transparent !important;
-        }}
-        
+    
+        /* Fjern hvit toppstripe */
+        header[data-testid="stHeader"],
         header[data-testid="stHeader"]::before {{
             background: transparent !important;
         }}
-
+    
+        /* ============================================================
+           === AG‑GRID BORDERS ===
+           ============================================================ */
+    
+        .ag-root-wrapper {{
+            border: 2px solid black !important;
+        }}
+    
+        .ag-cell {{
+            border-right: 2px solid black !important;
+            border-bottom: 2px solid black !important;
+        }}
+    
+        .ag-header-cell {{
+            border-right: 2px solid black !important;
+            border-bottom: 2px solid black !important;
+        }}
     
     </style>
     """,
@@ -634,32 +675,75 @@ elif st.session_state.input_mode == "full":
     # TABLE DISPLAY (only if rows exist)
     # -------------------------------------------------
     
-    if filtered_df.empty:
-        st.info("Ingen treff.")
-    else:
-        event = st.dataframe(
-            filtered_df[["Prod.no", "Beskrivelse_2", "Dimensjon", "Trykk(bar)"]],
-            use_container_width=True,
-            hide_index=True,
-            on_select="rerun",
-            selection_mode="single-row",
-            key="hose_table"
-        )
+   
     
     # -------------------------------------------------
     # TABLE SELECTION (SAFE)
     # -------------------------------------------------
     
-    if (
-        event
-        and event.selection
-        and event.selection.get("rows")
-    ):
-        selected_idx = event.selection["rows"][0]
     
-        if selected_idx < len(filtered_df):
-            selected_row = filtered_df.iloc[selected_idx]
-            st.session_state.selected_hose_row = selected_row
+
+    
+
+    # Velg kolonner
+    df_view = filtered_df[["Prod.no", "Beskrivelse", "Beskrivelse_2", "Dimensjon", "Trykk(bar)"]]
+    
+    # Bygg grid options
+    gb = GridOptionsBuilder.from_dataframe(df_view)
+    
+    gb.configure_column("Beskrivelse", hide=True)
+    
+    gb.configure_column("Prod.no", headerName="Artikkel nummer")
+    gb.configure_column("Beskrivelse_2", headerName="Beskrivelse")
+    gb.configure_column("Dimensjon", headerName="Dimensjon")
+    gb.configure_column("Trykk(bar)", headerName="Arbeidstrykk (Bar)")
+    
+    # Midtstill celler
+    gb.configure_default_column(
+        
+        headerClass="center-header", # Make sure this matches your CSS
+        cellStyle={
+            "display": "flex",
+            "justifyContent": "center",
+            "alignItems": "center",
+            "textAlign": "center"
+        }
+    )
+    
+    # Aktiver radvalg
+    gb.configure_selection(
+        selection_mode="single",
+        use_checkbox=False
+    )
+    
+    # Bygg gridOptions
+    grid_options = gb.build()
+    
+    custom_css = {
+        ".ag-header-cell-label": {"justify-content": "center"},
+        ".ag-header-cell-text": {"text-align": "center", "width": "100%"}
+    }
+
+    
+    # Kjør AG‑Grid med ny API
+    grid_response = AgGrid(
+        df_view,
+        gridOptions=grid_options,
+        custom_css=custom_css,
+        update_on=["selectionChanged"],   # ← NY API
+        fit_columns_on_grid_load=True,
+        theme="streamlit"                 # ← sikrer riktig CSS‑tema
+    )
+    
+    # Hent valgt rad
+    selected_df = grid_response["selected_rows"]
+    
+
+    if selected_df is not None and not selected_df.empty:
+        selected_row = selected_df.iloc[0].to_dict()
+        st.session_state.selected_hose_row = selected_row
+            
+        
     
 
     # -------------------------------------------------
@@ -745,67 +829,129 @@ elif st.session_state.input_mode == "full":
         df2 = df2_all[sheet_name]
         st.session_state.full_df2 = df2
     
+        
+
         # -------------------------------------------------
         # COUPLINGS
         # -------------------------------------------------
-    
+        
         st.divider()
         st.subheader("2️⃣ Velg kuplinger")
-    
+        
         col1, col2 = st.columns(2)
-    
+        
+        # -------------------------
+        # Kupling 1
+        # -------------------------
+        
         with col1:
             st.write("**Kupling 1**")
             st.write("Velg kupling fra tabellen:")
-            event1 = st.dataframe(
-                df2[["Prod.no", "Beskrivelse"]],
-                use_container_width=True,
-                hide_index=True,
-                on_select="rerun",
-                selection_mode="single-row",
-                key="coupling1_table"
+        
+            
+
+            gb1 = GridOptionsBuilder.from_dataframe(
+                df2[["Prod.no", "Beskrivelse"]]
             )
             
-            if event1.selection and event1.selection["rows"]:
-                selected_idx1 = event1.selection["rows"][0]
-                selected_c1_prod = df2.iloc[selected_idx1]["Prod.no"]
-                st.session_state.selected_c1_row = df2[df2["Prod.no"] == selected_c1_prod].iloc[0]
+            gb1.configure_default_column(
+                headerClass="center-header", 
+                cellStyle={"display": "flex", "justifyContent": "center", "alignItems": "center"}
+            )
             
+            # Single row selection without checkbox
+            gb1.configure_selection(
+                selection_mode="single",
+                use_checkbox=False
+            )
+            
+            custom_css = {
+                ".ag-header-cell-label": {"justify-content": "center"},
+                ".ag-header-cell-text": {"text-align": "center", "width": "100%"}
+            }
+            
+            grid_response1 = AgGrid(
+                df2[["Prod.no", "Beskrivelse"]],
+                gridOptions=gb1.build(),
+                custom_css=custom_css,
+                update_mode="SELECTION_CHANGED",
+                fit_columns_on_grid_load=True,
+                key="coupling1_grid"
+            )
+        
+            selected_df1 = grid_response1["selected_rows"]
+        
+            if selected_df1 is not None and not selected_df1.empty:
+                st.session_state.selected_c1_row = selected_df1.iloc[0].to_dict()
+        
             if st.session_state.selected_c1_row is not None:
                 st.write(f"✅ Valgt: *{st.session_state.selected_c1_row['Beskrivelse']}*")
             else:
                 st.info("Velg kupling fra tabellen")
-    
+        
+        
+        # -------------------------
+        # Kupling 2
+        # -------------------------
+        
         with col2:
             st.write("**Kupling 2**")
             st.write("Velg kupling fra tabellen:")
-            event2 = st.dataframe(
-                df2[["Prod.no", "Beskrivelse"]],
-                use_container_width=True,
-                hide_index=True,
-                on_select="rerun",
-                selection_mode="single-row",
-                key="coupling2_table"
+        
+            gb2 = GridOptionsBuilder.from_dataframe(
+                df2[["Prod.no", "Beskrivelse"]]
             )
             
-            if event2.selection and event2.selection["rows"]:
-                selected_idx2 = event2.selection["rows"][0]
-                selected_c2_prod = df2.iloc[selected_idx2]["Prod.no"]
-                st.session_state.selected_c2_row = df2[df2["Prod.no"] == selected_c2_prod].iloc[0]
+            # Center all cells
+            gb2.configure_default_column(
+                headerClass="center-header", 
+                cellStyle={"display": "flex", "justifyContent": "center", "alignItems": "center"}
+            )
+            gb2.configure_selection(
+                selection_mode="single",
+                use_checkbox=False
+            )
+        
+            custom_css = {
+                ".ag-header-cell-label": {"justify-content": "center"},
+                ".ag-header-cell-text": {"text-align": "center", "width": "100%"}
+            }
             
+            grid_response2 = AgGrid(
+                df2[["Prod.no", "Beskrivelse"]],
+                gridOptions=gb2.build(),
+                custom_css=custom_css,
+                update_mode="SELECTION_CHANGED",
+                fit_columns_on_grid_load=True,
+                key="coupling2_grid"
+            )
+        
+            selected_df2 = grid_response2["selected_rows"]
+        
+            if selected_df2 is not None and not selected_df2.empty:
+                st.session_state.selected_c2_row = selected_df2.iloc[0].to_dict()
+        
             if st.session_state.selected_c2_row is not None:
                 st.write(f"✅ Valgt: *{st.session_state.selected_c2_row['Beskrivelse']}*")
             else:
                 st.info("Velg kupling fra tabellen")
-    
-        if st.session_state.selected_c1_row is None or st.session_state.selected_c2_row is None:
+        
+        
+        # -------------------------
+        # VALIDATION
+        # -------------------------
+        
+        if (
+            st.session_state.selected_c1_row is None
+            or st.session_state.selected_c2_row is None
+        ):
             st.warning("⚠️ Du må velge kuplinger i begge ender")
             st.stop()
-    
+        
         row_c1 = st.session_state.selected_c1_row
         row_c2 = st.session_state.selected_c2_row
     
-            # -------------------------------------------------
+        # -------------------------------------------------
         # ADDITIONAL OPTIONS
         # -------------------------------------------------
     
@@ -954,4 +1100,4 @@ if st.session_state.output_rows:
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             use_container_width=True
         )
-    st.info("🙃 Ingen slanger lagt til ennå. Velg måte for å lage slangestruktur og fyll inn feltene")
+   
