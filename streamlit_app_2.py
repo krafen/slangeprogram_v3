@@ -1073,6 +1073,10 @@ st.header("📊 Foreløpig slangestruktur i Visma")
 
 if type_approval1 is True:
     st.info("For ABS gokjenning trengs det bevitnelse av trykktesting ")
+    st.info("Du finner Type Approval fra ABS her på Felles")
+    
+if type_approval is True:
+    st.info("Du finner Type Approval fra DNV her på Felles")
 
 if st.session_state.output_rows:
     output_df = pd.DataFrame(st.session_state.output_rows, columns=["Prod.no", "Beskrivelse", "Lager", "Antall"])
