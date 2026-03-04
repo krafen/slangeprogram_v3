@@ -574,9 +574,9 @@ elif st.session_state.input_mode == "full":
 
     # Type Approval FIRST - before search and table
     col1, col2 = st.columns([2, 1])
-    with col1:
-        type_approval1 = st.checkbox("Type Approval (ABS)?", key="full_type_approval1")
     with col2:
+        type_approval1 = st.checkbox("Type Approval (ABS)?", key="full_type_approval1")
+    with col1:
         type_approval = st.checkbox("Type Approval (DNV)?", key="full_type_approval")
 
     # Search hose
