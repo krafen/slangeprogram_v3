@@ -107,22 +107,32 @@ def set_background(image_path):
         }}
     
         /* ============================================================
-           === KNAPPER ===
+           === KNAPPER (Both Regular and Download) ===
            ============================================================ */
-    
-        .stButton > button {{
+        
+        .stButton > button, 
+        .stDownloadButton > button {{
             background-color: white !important;
             color: black !important;
             border: 1px solid #ccc !important;
             padding: 0.6rem 1.2rem !important;
             border-radius: 6px !important;
             font-weight: 600 !important;
+            width: 100% !important; /* Ensures they align nicely in columns */
         }}
-    
-        .stButton > button:hover {{
+        
+        .stButton > button:hover, 
+        .stDownloadButton > button:hover {{
             background-color: #f2f2f2 !important;
             border: 1px solid #999 !important;
             color: black !important;
+        }}
+        
+        /* Fix for the "Black Hover" issue specifically */
+        .stDownloadButton > button:active, 
+        .stDownloadButton > button:focus {{
+            color: black !important;
+            background-color: #f2f2f2 !important;
         }}
     
         /* ============================================================
@@ -1073,10 +1083,10 @@ st.header("📊 Foreløpig slangestruktur i Visma")
 
 if type_approval1 is True:
     st.info("For ABS gokjenning trengs det bevitnelse av trykktesting ")
-    st.info("Du finner Type Approval fra ABS på Felles")
+    st.info("Du finner Type Approval fra ABS her på Felles")
     
 if type_approval is True:
-    st.info("Du finner Type Approval fra DNV på Felles")
+    st.info("Du finner Type Approval fra DNV her på Felles")
 
 if st.session_state.output_rows:
     output_df = pd.DataFrame(st.session_state.output_rows, columns=["Prod.no", "Beskrivelse", "Lager", "Antall"])
