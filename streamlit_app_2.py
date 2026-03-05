@@ -500,6 +500,23 @@ else:
 if st.session_state.input_mode == "quick":
     st.header("➕ Skriv in Slangebeskrivelse")
 
+    col1, col2= st.columns(2) 
+
+    with col1:
+         type_approval = st.checkbox("Type Approval (DNV)?", key="quick_type_approval")
+         
+    with col2:
+         type_approval1 = st.checkbox("Type Approval (ABS)?", key="quick_type_approval1")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        if type_approval is True:
+            st.markdown("Krav til DNV Type Approval:  \nStål:  \nVed bruk av Gates slanger, må Gates kuplinger brukes(M-kuplinger, eller GS/GSM-kuplinger)  \nVed bruk av Vitillo slange, må Vitillo kuplinger brukes  \nSyrefast:  \nHP kuplinger brukes på både Gates of Vitillo slanger  \n  \nEr du usikker på hvike slanger som har DNV Type Approval, gå til Velg Slange og Kuplinger")
+        
+    with col2:        
+        if type_approval1 is True:
+            st.markdown("Krav til ABS Type Approval:  \nStål:  \nVed bruk av Gates slanger, må Gates kuplinger brukes(M-kuplinger, eller GS/GSM-kuplinger)  \nSyrefast:  \nHP kuplinger brukes på både Gates of Vitillo slanger  \n  \nEr du usikker på hvike slanger som har ABS Type Approval, gå til Velg Slange og Kuplinger")
+
     col1, col2 = st.columns([2, 1])
 
     with col1:
@@ -508,7 +525,7 @@ if st.session_state.input_mode == "quick":
     with col2:
         material = st.selectbox("Materiale", ["stål", "syrefast"], key="quick_material")
 
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2 = st.columns(2)
 
     with col1:
         lager = st.selectbox("Lager",
@@ -519,11 +536,7 @@ if st.session_state.input_mode == "quick":
     with col2:
         antall_slanger = st.number_input("Antall slanger", min_value=1, value=1, key="quick_antall")
 
-    with col3:
-        type_approval = st.checkbox("Type Approval (DNV)?", key="quick_type_approval")
-        
-    with col4:
-        type_approval1 = st.checkbox("Type Approval (ABS)?", key="quick_type_approval1")
+    
 
     col1, col2 = st.columns([1, 2])
     with col1:
@@ -681,11 +694,7 @@ elif st.session_state.input_mode == "full":
     event = None
     selected_row = None
     
-    # -------------------------------------------------
-    # TABLE DISPLAY (only if rows exist)
-    # -------------------------------------------------
-    
-   
+ 
     
     # -------------------------------------------------
     # TABLE SELECTION (SAFE)
