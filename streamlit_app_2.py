@@ -853,12 +853,17 @@ elif st.session_state.input_mode == "full":
     
 
     # Velg kolonner
-    df_view = filtered_df[["Prod.no", "Beskrivelse", "Beskrivelse_2", "Dimensjon", "Trykk(bar)"]]
+    df_view = filtered_df[["Prod.no", "Beskrivelse", "Beskrivelse_2", "Dimensjon", "Trykk(bar)", "Stål hylse(Posd.no)", "Stål hylse(beskrivelse)", "316 hylse(Posd.no)", "316 hylse(beskrivelse)"]]
     
     # Bygg grid options
     gb = GridOptionsBuilder.from_dataframe(df_view)
     
     gb.configure_column("Beskrivelse", hide=True)
+    gb.configure_column("Stål hylse(Posd.no)", hide=True)
+    gb.configure_column("Stål hylse(beskrivelse)", hide=True)
+    gb.configure_column("316 hylse(Posd.no)", hide=True)
+    gb.configure_column("316 hylse(beskrivelse)" , hide=True)
+
     
     gb.configure_column("Prod.no", headerName="Artikkel nummer")
     gb.configure_column("Beskrivelse_2", headerName="Beskrivelse")
