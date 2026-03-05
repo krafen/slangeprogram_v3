@@ -507,7 +507,7 @@ with col1:
 
 if st.session_state.input_mode == "certificate":
     st.header("📋 Lim inn rader for Sertifikat")
-    st.info("Systemet beregner nå antall slanger basert på MONT-raden (90011, 90012, 90013 eller 90800).")
+    st.info("OBS! Du kan ikke bruke komma, men må bruke punktum, f.eks 8,5 blir 8.5")
 
     if "certificate_input_df" not in st.session_state:
         st.session_state.certificate_input_df = pd.DataFrame(
@@ -524,16 +524,16 @@ if st.session_state.input_mode == "certificate":
     st.session_state.certificate_input_df = df_editor
 
     st.divider()
-    st.subheader("📋 Sertifikat Detaljer")
+    st.subheader("📋 Trykktest Detaljer")
     
     col_c1, col_c2 = st.columns(2)
     with col_c1:
         kunde = st.text_input("Kunde")
         kundens_best_nr = st.text_input("Kundens best. Nr.")
-        material = st.selectbox("Materiale", ["stål", "syrefast"])
+        
     with col_c2:
         hydra_ordre_nr = st.text_input("Hydra Pipe ordre nr.")
-        kundes_del_nr = st.text_input("Kundes del nr.")
+        material = st.selectbox("Materiale", ["stål", "syrefast"])
          
 
     if st.button("📄 Generer Sertifikater", use_container_width=True):
@@ -617,7 +617,7 @@ if st.session_state.input_mode == "certificate":
                     cert_data = core.fill_pressure_test_certificate_data(
                         {
                             "kunde": kunde, "kundens_best_nr": kundens_best_nr,
-                            "hydra_ordre_nr": hydra_ordre_nr, "kundes_del_nr": kundes_del_nr,
+                            "hydra_ordre_nr": hydra_ordre_nr,
                             "antall_slanger": real_antall, # Her brukes nå MONT-antallet!
                             
                         },
