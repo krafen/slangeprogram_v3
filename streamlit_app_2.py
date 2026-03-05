@@ -579,21 +579,31 @@ if st.session_state.input_mode == "certificate":
 
                 if not h_match.empty:
                     # Finn ANTALL basert på MONT-raden
+                    # --- Inne i loopen for assemblies ---
+
+                    # 1. Finn ANTALL basert på MONT-raden (90011, 90012, 90013 eller 90800)
                     real_antall = 1
                     for comp in asm["components"]:
                         if str(comp["Prod.no"]).strip() in MONT_NUMBERS:
                             try:
-                                real_antall = int(float(comp["Antall"]))
-                                break # Stopper ved første MONT-treff
+                                # Håndterer både tall, strenger med punktum og strenger med komma
+                                val_str = str(comp["Antall"]).replace(',', '.')
+                                real_antall = int(float(val_str))
+                                break 
                             except:
                                 real_antall = 1
-
-                    # Finn LENGDE (Total Antall delt på MONT Antall)
+                    
+                    # 2. Finn LENGDE (Total mengde delt på antall slanger)
                     try:
-                        total_qty = float(asm["hose"]["Antall"])
-                        # Lengde i mm = (Total / Antall slanger) * 1000
+                        # Henter verdien fra slange-raden, bytter ut komma med punktum
+                        hose_qty_str = str(asm["hose"]["Antall"]).replace(',', '.')
+                        total_qty = float(hose_qty_str)
+                        
+                        # Beregn lengde per slange i mm
+                        # (Total lengde / antall monteringer) * 1000
                         length_mm = int((total_qty / real_antall) * 1000)
-                    except:
+                    except Exception as e:
+                        # Fallback hvis noe går galt (f.eks. deling på null eller tom celle)
                         length_mm = 1000
 
                     # Finn Kuplinger for sertifikatet (leter kun etter tekniske data)
