@@ -507,9 +507,8 @@ with col1:
 
 if st.session_state.input_mode == "certificate":
     st.header("📋 Lim inn rader for Sertifikat")
-    st.info("Lim inn rader fra output-tabellen. Raden rett etter en '1'-separator regnes som slangen.")
+    st.info("Systemet beregner nå antall slanger basert på MONT-raden (90011, 90012, 90013 eller 90800).")
 
-    # 1. Initialize or get the dataframe
     if "certificate_input_df" not in st.session_state:
         st.session_state.certificate_input_df = pd.DataFrame(
             [{"Prod.no": "", "Beskrivelse": "", "Lager": "", "Antall": ""}] * 20
@@ -524,7 +523,6 @@ if st.session_state.input_mode == "certificate":
     )
     st.session_state.certificate_input_df = df_editor
 
-    # 2. CERTIFICATE DETAILS (The fields you wanted)
     st.divider()
     st.subheader("📋 Sertifikat Detaljer")
     
@@ -536,41 +534,42 @@ if st.session_state.input_mode == "certificate":
     with col_c2:
         hydra_ordre_nr = st.text_input("Hydra Pipe ordre nr.")
         kundes_del_nr = st.text_input("Kundes del nr.")
-        
-    # 3. GENERATION LOGIC
+        angle = st.text_input("Vinkel (valgfri)")
+
     if st.button("📄 Generer Sertifikater", use_container_width=True):
-        # Clean input
         df_clean = df_editor.dropna(subset=["Prod.no"])
         
         if df_clean.empty:
-            st.warning("Tabellen er tom. Vennligst lim inn data.")
+            st.warning("Tabellen er tom.")
         else:
-            # Group into assemblies
+            # 1. Grupper rader i blokker
             assemblies = []
             current_hose_row = None
-            current_couplings = []
+            current_components = []
+
+            # Hjelpeliste for MONT-nummer
+            MONT_NUMBERS = ["90011", "90012", "90013", "90800"]
 
             for _, row in df_clean.iterrows():
                 p_no = str(row["Prod.no"]).strip()
                 
-                if p_no == "1": # Block separator
+                if p_no == "1":
                     if current_hose_row is not None:
-                        assemblies.append({"hose": current_hose_row, "couplings": current_couplings})
+                        assemblies.append({"hose": current_hose_row, "components": current_components})
                     current_hose_row = None
                     current_components = []
                     continue
                 
                 if current_hose_row is None:
                     current_hose_row = row
-                    current_couplings = []
+                    current_components = []
                 else:
-                    current_couplings.append(p_no)
+                    current_components.append(row) # Lagrer hele raden for å sjekke Antall senere
 
-            # Catch last block
             if current_hose_row is not None:
-                assemblies.append({"hose": current_hose_row, "couplings": current_couplings})
+                assemblies.append({"hose": current_hose_row, "components": current_components})
 
-            # Create Workbook
+            # 2. Generer Excel
             output_wb = openpyxl.Workbook()
             success_count = 0
 
@@ -579,43 +578,58 @@ if st.session_state.input_mode == "certificate":
                 h_match = df1[df1["Prod.no"].astype(str).str.strip() == h_pno]
 
                 if not h_match.empty:
-                    # Lookup Couplings
-                    c_data_list = []
-                    for c_pno in asm["couplings"][:2]:
-                        c_pno_str = str(c_pno).strip()
-                        for sheet in df2_all.values():
-                            m = sheet[sheet["Prod.no"].astype(str).str.strip() == c_pno_str]
-                            if not m.empty:
-                                c_data_list.append(m.iloc[0].to_dict())
-                                break
-                    
-                    if len(c_data_list) == 1: c_data_list.append(None)
+                    # Finn ANTALL basert på MONT-raden
+                    real_antall = 1
+                    for comp in asm["components"]:
+                        if str(comp["Prod.no"]).strip() in MONT_NUMBERS:
+                            try:
+                                real_antall = int(float(comp["Antall"]))
+                                break # Stopper ved første MONT-treff
+                            except:
+                                real_antall = 1
 
-                    # Length from "Antall" column (converted to mm)
+                    # Finn LENGDE (Total Antall delt på MONT Antall)
                     try:
-                        length_mm = int(float(asm["hose"]["Antall"]) * 1000)
+                        total_qty = float(asm["hose"]["Antall"])
+                        # Lengde i mm = (Total / Antall slanger) * 1000
+                        length_mm = int((total_qty / real_antall) * 1000)
                     except:
                         length_mm = 1000
 
-                    # Prepare the data dictionary for core.py
-                    cert_data_for_template = core.fill_pressure_test_certificate_data(
-                        {
-                            "kunde": kunde,
-                            "kundens_best_nr": kundens_best_nr,
-                            "hydra_ordre_nr": hydra_ordre_nr,
-                            "kundes_del_nr": kundes_del_nr,
-                            "antall_slanger": 1, # Default to 1 per cert in this mode
+                    # Finn Kuplinger for sertifikatet (leter kun etter tekniske data)
+                    c_tech_data = []
+                    for comp in asm["components"]:
+                        c_pno = str(comp["Prod.no"]).strip()
+                        # Hopp over MONT og andre tjenester når vi leter etter kuplings-stål
+                        if c_pno in MONT_NUMBERS or c_pno.startswith("900"):
+                            continue
                             
+                        for sheet in df2_all.values():
+                            m = sheet[sheet["Prod.no"].astype(str).str.strip() == c_pno]
+                            if not m.empty:
+                                c_tech_data.append(m.iloc[0].to_dict())
+                                break
+                        if len(c_tech_data) >= 2: break # Trenger bare 2 kuplinger
+
+                    if len(c_tech_data) == 1: c_tech_data.append(None)
+
+                    # Fyll data
+                    cert_data = core.fill_pressure_test_certificate_data(
+                        {
+                            "kunde": kunde, "kundens_best_nr": kundens_best_nr,
+                            "hydra_ordre_nr": hydra_ordre_nr, "kundes_del_nr": kundes_del_nr,
+                            "antall_slanger": real_antall, # Her brukes nå MONT-antallet!
+                            "angle": angle
                         },
                         h_match.iloc[0].to_dict(),
-                        c_data_list,
+                        c_tech_data,
                         str(h_match.iloc[0].get("Dimensjon", "00")).zfill(2),
                         length_mm,
                         material
                     )
 
                     sheet_name = f"Cert_{idx+1}_{h_pno}"[:31]
-                    output_wb = core.add_certificate_sheet(output_wb, CERT_TEMPLATE, cert_data_for_template, sheet_name)
+                    output_wb = core.add_certificate_sheet(output_wb, CERT_TEMPLATE, cert_data, sheet_name)
                     success_count += 1
 
             if success_count > 0:
@@ -623,12 +637,10 @@ if st.session_state.input_mode == "certificate":
                 output_wb.active = 0
                 buf = io.BytesIO()
                 output_wb.save(buf)
-                st.success(f"✅ {success_count} sertifikater generert!")
-                st.download_button("⬇️ Last ned Excel-fil", buf.getvalue(), "sertifikater.xlsx", use_container_width=True)
-            else:
-                st.error("Kunne ikke matche data i Excel-arkene. Sjekk Prod.no.")
+                st.success(f"✅ Generert {success_count} sertifikater med korrekt antall/lengde!")
+                st.download_button("⬇️ Last ned", buf.getvalue(), "sertifikater.xlsx", use_container_width=True)
 
-    st.stop() # Ensure the rest of the app logic doesn't trigger
+    st.stop()
 # -------------------------------------------------
 # QUICK MODE
 # -------------------------------------------------
