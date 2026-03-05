@@ -534,7 +534,7 @@ if st.session_state.input_mode == "certificate":
     with col_c2:
         hydra_ordre_nr = st.text_input("Hydra Pipe ordre nr.")
         kundes_del_nr = st.text_input("Kundes del nr.")
-        angle = st.text_input("Vinkel (valgfri)")
+         
 
     if st.button("📄 Generer Sertifikater", use_container_width=True):
         df_clean = df_editor.dropna(subset=["Prod.no"])
@@ -619,7 +619,7 @@ if st.session_state.input_mode == "certificate":
                             "kunde": kunde, "kundens_best_nr": kundens_best_nr,
                             "hydra_ordre_nr": hydra_ordre_nr, "kundes_del_nr": kundes_del_nr,
                             "antall_slanger": real_antall, # Her brukes nå MONT-antallet!
-                            "angle": angle
+                            
                         },
                         h_match.iloc[0].to_dict(),
                         c_tech_data,
@@ -729,7 +729,7 @@ if st.session_state.input_mode == "quick":
         "hydra_ordre_nr": "",
         "kundes_del_nr": "",
         "antall_slanger": antall_slanger,
-        "angle": ""
+        
     }
 
     if pressure_test:
