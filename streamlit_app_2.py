@@ -14,6 +14,7 @@ import io
 import os
 import base64
 from st_aggrid import AgGrid, GridOptionsBuilder
+import re 
 
 import core
 
@@ -481,18 +482,153 @@ st.divider()
 col1, col2 = st.columns(2)
 with col1:
     mode_choice = st.radio(
-        "Vil du skrive inn slangebeskrivelse eller velge slanger og kuplinger?",
-        options=["⌨️ Skriv inn Slangebeskrivelse", "🖱 Velg Slange og Kuplinger"],
+        "Velg funksjon:",
+        options=[
+            "⌨️ Skriv inn Slangebeskrivelse",
+            "🖱 Velg Slange og Kuplinger",
+            "📋 Lim inn rader for Sertifikat"
+        ],
         index=0,
         key="mode_radio"
     )
-# Update session state based on selection
-if mode_choice == "⌨️ Skriv inn Slangebeskrivelse":
-    st.session_state.input_mode = "quick"
-else:
-    st.session_state.input_mode = "full"
+    
+    if mode_choice == "⌨️ Skriv inn Slangebeskrivelse":
+        st.session_state.input_mode = "quick"
+    
+    elif mode_choice == "🖱 Velg Slange og Kuplinger":
+        st.session_state.input_mode = "full"
+    
+    elif mode_choice == "📋 Lim inn rader for Sertifikat":
+        st.session_state.input_mode = "certificate"
 
+# -------------------------------------------------
+# CERTIFICATE PASTE MODE (ISOLATED)
+# -------------------------------------------------
 
+if st.session_state.input_mode == "certificate":
+    st.header("📋 Lim inn rader for Sertifikat")
+    st.info("Lim inn rader fra output-tabellen. Raden rett etter en '1'-separator regnes som slangen.")
+
+    # 1. Initialize or get the dataframe
+    if "certificate_input_df" not in st.session_state:
+        st.session_state.certificate_input_df = pd.DataFrame(
+            [{"Prod.no": "", "Beskrivelse": "", "Lager": "", "Antall": ""}] * 20
+        )
+
+    df_editor = st.data_editor(
+        st.session_state.certificate_input_df,
+        num_rows="dynamic",
+        use_container_width=True,
+        key="certificate_editor",
+        hide_index=True
+    )
+    st.session_state.certificate_input_df = df_editor
+
+    # 2. CERTIFICATE DETAILS (The fields you wanted)
+    st.divider()
+    st.subheader("📋 Sertifikat Detaljer")
+    
+    col_c1, col_c2 = st.columns(2)
+    with col_c1:
+        kunde = st.text_input("Kunde")
+        kundens_best_nr = st.text_input("Kundens best. Nr.")
+        material = st.selectbox("Materiale", ["stål", "syrefast"])
+    with col_c2:
+        hydra_ordre_nr = st.text_input("Hydra Pipe ordre nr.")
+        kundes_del_nr = st.text_input("Kundes del nr.")
+        
+    # 3. GENERATION LOGIC
+    if st.button("📄 Generer Sertifikater", use_container_width=True):
+        # Clean input
+        df_clean = df_editor.dropna(subset=["Prod.no"])
+        
+        if df_clean.empty:
+            st.warning("Tabellen er tom. Vennligst lim inn data.")
+        else:
+            # Group into assemblies
+            assemblies = []
+            current_hose_row = None
+            current_couplings = []
+
+            for _, row in df_clean.iterrows():
+                p_no = str(row["Prod.no"]).strip()
+                
+                if p_no == "1": # Block separator
+                    if current_hose_row is not None:
+                        assemblies.append({"hose": current_hose_row, "couplings": current_couplings})
+                    current_hose_row = None
+                    current_components = []
+                    continue
+                
+                if current_hose_row is None:
+                    current_hose_row = row
+                    current_couplings = []
+                else:
+                    current_couplings.append(p_no)
+
+            # Catch last block
+            if current_hose_row is not None:
+                assemblies.append({"hose": current_hose_row, "couplings": current_couplings})
+
+            # Create Workbook
+            output_wb = openpyxl.Workbook()
+            success_count = 0
+
+            for idx, asm in enumerate(assemblies):
+                h_pno = str(asm["hose"]["Prod.no"]).strip()
+                h_match = df1[df1["Prod.no"].astype(str).str.strip() == h_pno]
+
+                if not h_match.empty:
+                    # Lookup Couplings
+                    c_data_list = []
+                    for c_pno in asm["couplings"][:2]:
+                        c_pno_str = str(c_pno).strip()
+                        for sheet in df2_all.values():
+                            m = sheet[sheet["Prod.no"].astype(str).str.strip() == c_pno_str]
+                            if not m.empty:
+                                c_data_list.append(m.iloc[0].to_dict())
+                                break
+                    
+                    if len(c_data_list) == 1: c_data_list.append(None)
+
+                    # Length from "Antall" column (converted to mm)
+                    try:
+                        length_mm = int(float(asm["hose"]["Antall"]) * 1000)
+                    except:
+                        length_mm = 1000
+
+                    # Prepare the data dictionary for core.py
+                    cert_data_for_template = core.fill_pressure_test_certificate_data(
+                        {
+                            "kunde": kunde,
+                            "kundens_best_nr": kundens_best_nr,
+                            "hydra_ordre_nr": hydra_ordre_nr,
+                            "kundes_del_nr": kundes_del_nr,
+                            "antall_slanger": 1, # Default to 1 per cert in this mode
+                            
+                        },
+                        h_match.iloc[0].to_dict(),
+                        c_data_list,
+                        str(h_match.iloc[0].get("Dimensjon", "00")).zfill(2),
+                        length_mm,
+                        material
+                    )
+
+                    sheet_name = f"Cert_{idx+1}_{h_pno}"[:31]
+                    output_wb = core.add_certificate_sheet(output_wb, CERT_TEMPLATE, cert_data_for_template, sheet_name)
+                    success_count += 1
+
+            if success_count > 0:
+                if "Sheet" in output_wb.sheetnames: del output_wb["Sheet"]
+                output_wb.active = 0
+                buf = io.BytesIO()
+                output_wb.save(buf)
+                st.success(f"✅ {success_count} sertifikater generert!")
+                st.download_button("⬇️ Last ned Excel-fil", buf.getvalue(), "sertifikater.xlsx", use_container_width=True)
+            else:
+                st.error("Kunne ikke matche data i Excel-arkene. Sjekk Prod.no.")
+
+    st.stop() # Ensure the rest of the app logic doesn't trigger
 # -------------------------------------------------
 # QUICK MODE
 # -------------------------------------------------
@@ -1090,12 +1226,8 @@ elif st.session_state.input_mode == "full":
 st.divider()
 st.header("📊 Foreløpig slangestruktur i Visma")
 
-if type_approval1 is True:
-    st.info("For ABS gokjenning trengs det bevitnelse av trykktesting ")
-    st.info("Du finner Type Approval fra ABS på Felles")
-    
-if type_approval is True:
-    st.info("Du finner Type Approval fra DNV på Felles")
+
+
 
 if st.session_state.output_rows:
     output_df = pd.DataFrame(st.session_state.output_rows, columns=["Prod.no", "Beskrivelse", "Lager", "Antall"])
