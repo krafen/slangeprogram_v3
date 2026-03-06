@@ -472,7 +472,7 @@ def generate_excel():
 # Image at top
 col1, col2, col3 = st.columns([1, 2, 1])
 with col2:
-    st.image("assets/logo.png",use_container_width=True)
+    st.image("assets/logo.png",width='stretch')
 
 st.title("🔎 Eivinds Slangeprogram")
 
