@@ -472,7 +472,7 @@ def generate_excel():
 # Image at top
 col1, col2, col3 = st.columns([1, 2, 1])
 with col2:
-    st.image("assets/logo.png", use_column_width=True)
+    st.image("assets/logo.png",use_container_width=True)
 
 st.title("🔎 Eivinds Slangeprogram")
 
@@ -761,27 +761,39 @@ if st.session_state.input_mode == "quick":
         if not first_line:
             st.error("Første utdata-linje må oppgis!")
         else:
-            selected_row, second_row1, second_row2, sheet_name_found, size_str, length_int = core.find_matches_from_summary(
-                first_line, df1, df2_all, material_pref=material
-            )
-    
-        # Sett kundes_del_nr riktig
-        if input_linje and inputlinje:
-            pressure_details["kundes_del_nr"] = inputlinje
+            try:
+                # 1. Prøv å finne treff i databasen basert på tekststrengen
+                result = core.find_matches_from_summary(
+                    first_line, df1, df2_all, material_pref=material
+                )
+                
+                # Sjekk om funksjonen faktisk returnerte gyldige data
+                if result and result[0] is not None:
+                    selected_row, second_row1, second_row2, sheet_name_found, size_str, length_int = result
+                    
+                    # 2. Sett kundes_del_nr riktig
+                    if input_linje and inputlinje:
+                        pressure_details["kundes_del_nr"] = inputlinje
+                        
+                    if type_approval1:
+                        st.session_state.type_approval1 = True
+
+                    # 3. KJØR funksjonen bare når vi har definerte variabler
+                    process_and_add_hose(
+                        selected_row, second_row1, second_row2, sheet_name_found, size_str,
+                        length_int, material, lager, pos_mark, posnr, input_linje, inputlinje, pressure_test,
+                        pressure_details, antall_slanger, prikling=prikling, first_line=first_line
+                    )
+                    
+                    if type_approval1:
+                        st.session_state.abs_selected_any = True
+                        
+                    st.success(f"✅ Slange lagt til! ({len(st.session_state.output_rows)} rader)")
+                else:
+                    st.error("❌ Kunne ikke tolke slangebeskrivelsen. Sjekk at formatet er riktig (Slange-Lengde-Kupling-Kupling).")
             
-        if type_approval1:
-            st.session_state.type_approval1 = True
-    
-        # 🚀 Denne må ALLTID kjøres, uansett input_linje
-        process_and_add_hose(
-            selected_row, second_row1, second_row2, sheet_name_found, size_str,
-            length_int, material, lager, pos_mark, posnr, input_linje, inputlinje, pressure_test,
-            pressure_details, antall_slanger, prikling=prikling, first_line=first_line
-        )
-    
-        if type_approval1:
-            st.session_state.abs_selected_any = True
-        st.success(f"✅ Slange lagt til! ({len(st.session_state.output_rows)} rader)")
+            except Exception as e:
+                st.error(f"⚠️ En feil oppstod under tolking: {e}")
 
 
 # -------------------------------------------------
