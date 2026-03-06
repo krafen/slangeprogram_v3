@@ -921,7 +921,7 @@ elif st.session_state.input_mode == "full":
     
     # Kjør AG‑Grid med ny API
     grid_response = AgGrid(
-        df_view,
+        df_view.copy(),
         gridOptions=grid_options,
         custom_css=custom_css,
         update_on=["selectionChanged"],   # ← NY API
