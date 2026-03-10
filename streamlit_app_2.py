@@ -814,7 +814,14 @@ if st.session_state.input_mode == "quick":
 elif st.session_state.input_mode == "excel_batch":
 
     st.header("📂 Excel – flere slanger")
-    
+
+    with open(fler_slange_mal, "rb") as file:
+        btn = st.download_button(
+            label="Last ned MAL",
+            data=file,
+            file_name="MAL_slangebeskrivelse_flere_rader.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
     
     
     uploaded_file = st.file_uploader(
