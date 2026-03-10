@@ -209,6 +209,7 @@ FIRST_FILE = "Slanger_hylser.xlsx"
 SECOND_FILE = "kuplinger_316.xlsx"
 CERT_TEMPLATE = "Mal Trykktest Sertikat.xlsx"
 SLUTT_TEMPLATE = "Mal sluttkontroll slanger.xlsx"
+fler_slange_mal = "MAL_slangebeskrivelse_flere_rader.xlsx"
 
 
 # -------------------------------------------------
@@ -486,7 +487,8 @@ with col1:
         options=[
             "⌨️ Skriv inn Slangebeskrivelse",
             "🖱 Velg Slange og Kuplinger",
-            "📋 Lim inn rader for Sertifikat"
+            "📋 Lim inn rader for Sertifikat",
+            "📂 Excel – flere slanger"
         ],
         index=0,
         key="mode_radio"
@@ -500,6 +502,9 @@ with col1:
     
     elif mode_choice == "📋 Lim inn rader for Sertifikat":
         st.session_state.input_mode = "certificate"
+        
+    elif mode_choice == "📂 Excel – flere slanger":
+        st.session_state.input_mode = "excel_batch"
 
 # -------------------------------------------------
 # CERTIFICATE PASTE MODE (ISOLATED)
@@ -795,6 +800,307 @@ if st.session_state.input_mode == "quick":
             except Exception as e:
                 st.error(f"⚠️ En feil oppstod under tolking: {e}")
 
+
+# -------------------------------------------------
+# EXCEL BATCH MODE
+# -------------------------------------------------
+
+elif st.session_state.input_mode == "excel_batch":
+
+    st.header("📂 Excel – flere slanger")
+    
+    
+    
+    uploaded_file = st.file_uploader(
+        "Last opp utfylt MAL_slangebeskrivelse_flere_rader.xlsx",
+        type=["xlsx"]
+    )
+
+    if uploaded_file is None:
+        st.stop()
+
+    try:
+        import_df = pd.read_excel(uploaded_file)
+    except Exception as e:
+        st.error(f"Kunne ikke lese Excel: {e}")
+        st.stop()
+
+    st.subheader("Importerte rader")
+    st.dataframe(import_df, use_container_width=True)
+
+    st.divider()
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        add_trykktest = st.checkbox("Legg til Trykktest")
+
+    with col2:
+        add_prikling = st.checkbox("Legg til Prikling")
+
+    # ---------------------------------
+    # TRYKKTEST DETAILS UI
+    # ---------------------------------
+
+    pressure_details = {}
+
+    if add_trykktest:
+
+        st.subheader("Trykktest Detaljer")
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            pressure_details["kunde"] = st.text_input("Kunde")
+            pressure_details["kundens_best_nr"] = st.text_input("Kundens Best.nr")
+
+        with col2:
+            pressure_details["hydra_ordre_nr"] = st.text_input("Hydra Ordre.nr")
+            #pressure_details["kundes_del_nr"] = st.text_input("Kundes delnummer")
+
+    st.divider()
+
+    if st.button("⚙️ Generer Output", use_container_width=True):
+
+        output_rows = []
+        certificate_data_list = []
+
+        for _, row in import_df.iterrows():
+
+            summary_line = str(row.get("Slangebeskrivelse", "")).strip()
+
+            if summary_line == "":
+                continue
+
+            antall = row.get("Antall", 1)
+
+            try:
+                antall = int(antall)
+            except:
+                antall = 1
+
+            pos_nr = row.get("POS.nr", "")
+            kundes_del_nr = row.get("Kundes delnummer", "")
+            lager_nr = row.get("Lager", "")
+
+            # ---------------------------------
+            # PARSE SUMMARY
+            # ---------------------------------
+
+            selected_row, second_row1, second_row2, sheet_name, size_str, length_int = core.find_matches_from_summary(
+                summary_line,
+                df1,
+                df2_all,
+                material_pref=None
+            )
+
+            if selected_row is None:
+                st.warning(f"Fant ikke slange: {summary_line}")
+                continue
+
+            second_rows = [second_row1, second_row2]
+
+            # ---------------------------------
+            # POS ROW
+            # ---------------------------------
+
+            
+            if pos_nr:
+
+                output_rows.append([
+                    "1",
+                    pos_nr,
+                    lager_nr,
+                    ""
+                ])
+
+            if kundes_del_nr:
+
+                output_rows.append([
+                    "1",
+                    kundes_del_nr,
+                    lager_nr,
+                    ""
+                ])
+                
+            
+
+            # ---------------------------------
+            # HOSE ROW
+            # ---------------------------------
+
+            hose_qty = length_int / 1000 if length_int else 1
+
+            output_rows.append([
+                selected_row["Prod.no"],
+                selected_row["Beskrivelse"],
+                lager_nr,
+                hose_qty
+            ])
+
+            # ---------------------------------
+            # COUPLINGS
+            # ---------------------------------
+
+            for r in second_rows:
+
+                if r is None:
+                    continue
+
+                output_rows.append([
+                    r["Prod.no"],
+                    r["Beskrivelse"],
+                    lager_nr,
+                    antall
+                ])
+
+            # ---------------------------------
+            # MONT
+            # ---------------------------------
+
+            mont_row = core.get_mont_row(size_str, sheet_name, mont_df)
+
+            if mont_row is not None:
+
+                output_rows.append([
+                    mont_row["Prod.no"],
+                    mont_row["Beskrivelse"],
+                    lager_nr,
+                    antall
+                ])
+
+            # ---------------------------------
+            # TRYKKTEST
+            # ---------------------------------
+
+            if add_trykktest:
+
+                trykk_row = core.get_trykktest_prodno(
+                    size_str,
+                    length_int,
+                    trykktest_df
+                )
+
+                if trykk_row is not None:
+
+                    output_rows.append([
+                        trykk_row["Prod.no"],
+                        trykk_row["Beskrivelse"],
+                        lager_nr,
+                        antall
+                    ])
+
+            # ---------------------------------
+            # PRIKLING
+            # ---------------------------------
+
+            if add_prikling:
+
+                prikling_row = core.get_prikling_row(
+                    size_str,
+                    prikling_df
+                )
+
+                if prikling_row is not None:
+
+                    output_rows.append([
+                        prikling_row["Prod.no"],
+                        prikling_row["Beskrivelse"],
+                        lager_nr,
+                        antall
+                    ])
+
+            # ---------------------------------
+            # SPACER ROW (same as Quick Mode)
+            # ---------------------------------
+
+            output_rows.append([
+                1,
+                "",
+                lager_nr,
+                ""
+            ])
+
+            # ---------------------------------
+            # CERTIFICATE DATA
+            # ---------------------------------
+
+            if add_trykktest:
+
+                row_pressure_details = pressure_details.copy()
+
+                row_pressure_details["antall_slanger"] = antall
+                row_pressure_details["kundes_del_nr"] = kundes_del_nr
+
+                certificate_data = core.fill_pressure_test_certificate_data(
+                    row_pressure_details,
+                    selected_row,
+                    second_rows,
+                    size_str,
+                    length_int,
+                    ""
+                )
+
+                certificate_data_list.append(certificate_data)
+
+        if not output_rows:
+
+            st.warning("Ingen rader generert.")
+            st.stop()
+
+        # ---------------------------------
+        # CREATE OUTPUT WORKBOOK
+        # ---------------------------------
+
+        wb = core.create_output_workbook(output_rows)
+
+        # ---------------------------------
+        # ADD CERTIFICATE SHEETS
+        # ---------------------------------
+
+        if add_trykktest:
+
+            for i, cert_data in enumerate(certificate_data_list, start=1):
+
+                sheet_name = f"Sertifikat {i}"
+
+                wb = core.add_certificate_sheet(
+                    wb,
+                    CERT_TEMPLATE,
+                    cert_data,
+                    sheet_name
+                )
+
+        # ---------------------------------
+        # ADD SLUTTKONTROLL
+        # ---------------------------------
+
+        wb = core.add_sluttkontroll_sheet(
+            wb,
+            SLUTT_TEMPLATE,
+            kunde=pressure_details.get("kunde", ""),
+            hydra_ordre_nr=pressure_details.get("hydra_ordre_nr", "")
+        )
+
+        # ---------------------------------
+        # DOWNLOAD
+        # ---------------------------------
+
+        from io import BytesIO
+
+        buffer = BytesIO()
+        wb.save(buffer)
+        buffer.seek(0)
+
+        st.success(f"✅ {len(import_df)} slanger prosessert.")
+
+        st.download_button(
+            "📥 Last ned Output.xlsx",
+            buffer,
+            file_name="Output.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            use_container_width=True
+        )
 
 # -------------------------------------------------
 # FULL MODE
@@ -1263,7 +1569,11 @@ elif st.session_state.input_mode == "full":
 # -------------------------------------------------
 
 st.divider()
-st.header("📊 Foreløpig slangestruktur i Visma")
+if st.session_state.input_mode == "full":
+    st.header("📊 Foreløpig slangestruktur i Visma")
+    
+if st.session_state.input_mode == "quick":
+    st.header("📊 Foreløpig slangestruktur i Visma")
 
 
 
