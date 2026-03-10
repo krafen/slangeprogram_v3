@@ -512,7 +512,7 @@ with col1:
 
 if st.session_state.input_mode == "certificate":
     st.header("📋 Lim inn rader for Sertifikat")
-    st.info("OBS! Du kan ikke bruke komma, men må bruke punktum, f.eks 8,5 blir 8.5")
+    #st.info("OBS! Du kan ikke bruke komma, men må bruke punktum, f.eks 8,5 blir 8.5")
 
     if "certificate_input_df" not in st.session_state:
         st.session_state.certificate_input_df = pd.DataFrame(
