@@ -653,8 +653,14 @@ if st.session_state.input_mode == "certificate":
                 buf = io.BytesIO()
                 output_wb.save(buf)
                 st.success(f"✅ Generert {success_count} sertifikater med korrekt antall/lengde!")
-                st.download_button("⬇️ Last ned", buf.getvalue(), "sertifikater.xlsx", use_container_width=True)
-
+                
+                st.download_button(
+                    "⬇️ Last ned",
+                    buf.getvalue(),
+                    file_name=f"sertifikater_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    use_container_width=True
+                )
     st.stop()
 # -------------------------------------------------
 # QUICK MODE
@@ -1097,7 +1103,7 @@ elif st.session_state.input_mode == "excel_batch":
         st.download_button(
             "📥 Last ned Output.xlsx",
             buffer,
-            file_name="Output.xlsx",
+            file_name=f"output_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             use_container_width=True
         )
