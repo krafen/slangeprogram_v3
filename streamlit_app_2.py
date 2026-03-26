@@ -268,6 +268,8 @@ if "selected_c2_row" not in st.session_state:
 if "full_df2" not in st.session_state:
     st.session_state.full_df2 = None
 
+if "output_batches" not in st.session_state:
+    st.session_state.output_batches = []
 
 # -------------------------------------------------
 # HELPER FUNCTIONS
@@ -280,7 +282,7 @@ def process_and_add_hose(selected_row, second_row1, second_row2, sheet_name_foun
                         pressure_details, antall_slanger,prikling=False, first_line="", angle=""):
     """Process hose data and add to output rows"""
     rows = []
-
+    start_len = len(st.session_state.output_rows)
     if pos_mark and posnr:
         rows.append(["1", f"POS: {posnr}", int(lager), 1])
         try:
@@ -391,6 +393,11 @@ def process_and_add_hose(selected_row, second_row1, second_row2, sheet_name_foun
             "material": material,
             "pressure_details": pressure_details
         })
+        
+    end_len = len(st.session_state.output_rows)
+    rows_added = end_len - start_len
+    
+    st.session_state.output_batches.append(rows_added)
 def generate_excel():
     rows_for_excel = [r.copy() for r in st.session_state.output_rows]
 
@@ -1600,7 +1607,11 @@ if st.session_state.output_rows:
     with col1:
         if st.button("🗑️ Slett siste", use_container_width=True):
             if len(st.session_state.output_rows) > 0:
-                st.session_state.output_rows.pop()
+                if st.session_state.output_batches:
+                    last_batch_size = st.session_state.output_batches.pop()
+                    
+                    if last_batch_size > 0:
+                        st.session_state.output_rows = st.session_state.output_rows[:-last_batch_size]
             st.rerun()
 
     with col2:
