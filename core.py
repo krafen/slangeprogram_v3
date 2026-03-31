@@ -71,7 +71,19 @@ def get_trykktest_prodno(size, length, trykktest_df):
 
     row = trykktest_df.loc[trykktest_df["Prod.no"] == prod_no]
     return row.iloc[0] if not row.empty else None
+def adjust_length(desc, material):
+    base_len = 9 if material == "stål" else 15
 
+    if desc.startswith("GSM"):
+        extra = 3
+    elif desc.startswith("GS"):
+        extra = 2
+    elif desc.startswith("M"):
+        extra = 1
+    else:
+        extra = 0
+
+    return desc[:base_len + extra]
 
 def get_prikling_row(size, prikling_df):
     if size is None:
@@ -303,8 +315,8 @@ def fill_pressure_test_certificate_data(
 
     part1 = str(selected_row["Beskrivelse"])[:7] if selected_row is not None else ""
     part2 = str(length_int if length_int else "")
-    part3 = str(second_rows[0]["Beskrivelse"])[:9 if material == "stål" else 15] if second_rows[0] is not None else ""
-    part4 = str(second_rows[1]["Beskrivelse"])[:9 if material == "stål" else 15] if second_rows[1] is not None else ""
+    part3 = adjust_length(str(second_rows[0]["Beskrivelse"]), material) if second_rows[0] is not None else ""
+    part4 = adjust_length(str(second_rows[1]["Beskrivelse"]), material) if second_rows[1] is not None else ""
 
     angle = pressure_details.get("angle", "")
     
@@ -315,8 +327,8 @@ def fill_pressure_test_certificate_data(
 
     couplings_str = ""
     if second_rows[0] is not None and second_rows[1] is not None:
-        coup1 = str(second_rows[0]["Beskrivelse"])[:9 if material == "stål" else 15]
-        coup2 = str(second_rows[1]["Beskrivelse"])[:9 if material == "stål" else 15]
+        coup1 = adjust_length(str(second_rows[0]["Beskrivelse"]), material)
+        coup2 = adjust_length(str(second_rows[1]["Beskrivelse"]), material)
         couplings_str = f"{coup1} / {coup2}"
     elif second_rows[0] is not None:
         coup1 = str(second_rows[0]["Beskrivelse"])[:9 if material == "stål" else 15]
@@ -414,6 +426,9 @@ def create_output_workbook(output_rows):
         ws.column_dimensions[col_letter].width = 20
 
     return wb
+
+
+
 
 
 def add_certificate_sheet(output_wb, template_path, certificate_data, sheet_name):
