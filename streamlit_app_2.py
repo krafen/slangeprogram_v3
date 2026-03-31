@@ -276,7 +276,19 @@ if "output_batches" not in st.session_state:
 # -------------------------------------------------
 if st.session_state.get("full_abs", False):
     st.session_state.abs_selected_any = True
-    
+def adjust_length(desc, material):
+    base_len = 9 if material == "stål" else 15
+
+    if desc.startswith("GSM"):
+        extra = 3
+    elif desc.startswith("GS"):
+        extra = 2
+    elif desc.startswith("M"):
+        extra = 1
+    else:
+        extra = 0
+
+    return desc[:base_len + extra]    
 def process_and_add_hose(selected_row, second_row1, second_row2, sheet_name_found, size_str, 
                         length_int, material, lager, pos_mark, posnr, input_linje, inputlinje, pressure_test, 
                         pressure_details, antall_slanger,prikling=False, first_line="", angle=""):
@@ -303,8 +315,8 @@ def process_and_add_hose(selected_row, second_row1, second_row2, sheet_name_foun
         # Full mode - build first line from components with angle if provided
         part1 = str(selected_row["Beskrivelse"])[:7] if selected_row is not None else ""
         part2 = str(length_int if length_int else "")
-        part3 = str(second_row1["Beskrivelse"])[:9 if material == "stål" else 15] if second_row1 is not None else ""
-        part4 = str(second_row2["Beskrivelse"])[:9 if material == "stål" else 15] if second_row2 is not None else ""
+        part3 = adjust_length(str(second_row1["Beskrivelse"]), material) if second_row1 is not None else ""
+        part4 = adjust_length(str(second_row2["Beskrivelse"]), material) if second_row2 is not None else ""
         
         if angle and angle.strip():
             first_line_display = f"{part1}/{part2}/{part3}/{part4}/{angle}°"
