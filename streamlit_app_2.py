@@ -905,7 +905,7 @@ elif st.session_state.input_mode == "excel_batch":
                 continue
 
             antall = row.get("Antall", 1)
-
+            material = str(row.get("Materiale", "")).strip().lower()
             try:
                 antall = int(antall)
             except:
@@ -923,7 +923,7 @@ elif st.session_state.input_mode == "excel_batch":
                 summary_line,
                 df1,
                 df2_all,
-                material_pref=None
+                material_pref=material
             )
 
             if selected_row is None:
@@ -984,6 +984,41 @@ elif st.session_state.input_mode == "excel_batch":
                     r["Beskrivelse"],
                     lager_nr,
                     antall
+                ])
+                
+                
+            # ---------------------------------
+            # HYLSE (MISSING PART - ADD THIS)
+            # ---------------------------------
+            
+            gsm_count = 0
+            
+            for r in second_rows:
+                if r is not None and str(r.get("Beskrivelse", "")).startswith("GSM"):
+                    gsm_count += 1
+            
+            # Pick correct hylse based on material
+            if material == "stål":
+                mat_prod = selected_row.get("Stål hylse(Posd.no)", "")
+                mat_desc = selected_row.get("Stål hylse(beskrivelse)", "")
+            else:
+                mat_prod = selected_row.get("316 hylse(Posd.no)", "")
+                mat_desc = selected_row.get("316 hylse(beskrivelse)", "")
+            
+            # Same skip logic as other modes
+            sheet_key = core._extract_sheet_key_from_sheetname(sheet_name)
+            
+            skip_staal_hylse = "(M-st)" in sheet_key or "(GSM)" in sheet_key
+            
+            if gsm_count < 2 and not skip_staal_hylse and mat_prod:
+            
+                hylse_qty = 2 if gsm_count == 0 else 1
+            
+                output_rows.append([
+                    mat_prod,
+                    mat_desc,
+                    lager_nr,
+                    hylse_qty * antall
                 ])
 
             # ---------------------------------
