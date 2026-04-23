@@ -958,6 +958,17 @@ elif st.session_state.input_mode == "excel_batch":
             
 
             # ---------------------------------
+            # SUMMARY LINE ROW (matches Quick/Full mode behaviour)
+            # ---------------------------------
+
+            output_rows.append([
+                "1",
+                summary_line,
+                lager_nr,
+                1
+            ])
+
+            # ---------------------------------
             # HOSE ROW
             # ---------------------------------
 
@@ -1678,4 +1689,3 @@ if st.session_state.output_rows:
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             use_container_width=True
         )
-   
