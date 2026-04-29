@@ -334,15 +334,22 @@ def process_and_add_hose(selected_row, second_row1, second_row2, sheet_name_foun
     else:
         rows.append(["", "Fant ikke første produkt", int(lager), 1])
 
-    if second_row1 is not None:
-        rows.append([second_row1["Prod.no"], second_row1["Beskrivelse"], int(lager), 1])
+    # Single-coupling detection: second_row2 is None means only one coupling was in the summary.
+    # In that case, use Antall=2 for that coupling and mirror it into second_row2
+    # so that downstream hylse/gsm logic still works correctly.
+    if first_line and second_row1 is not None and second_row2 is None:
+        rows.append([second_row1["Prod.no"], second_row1["Beskrivelse"], int(lager), 2])
+        second_row2 = second_row1  # mirror so hylse/gsm logic below works
     else:
-        rows.append(["", "Fant ikke første kupling", int(lager), 1])
+        if second_row1 is not None:
+            rows.append([second_row1["Prod.no"], second_row1["Beskrivelse"], int(lager), 1])
+        else:
+            rows.append(["", "Fant ikke første kupling", int(lager), 1])
 
-    if second_row2 is not None:
-        rows.append([second_row2["Prod.no"], second_row2["Beskrivelse"], int(lager), 1])
-    else:
-        rows.append(["", "Fant ikke andre kupling", int(lager), 1])
+        if second_row2 is not None:
+            rows.append([second_row2["Prod.no"], second_row2["Beskrivelse"], int(lager), 1])
+        else:
+            rows.append(["", "Fant ikke andre kupling", int(lager), 1])
 
     gsm_count = 0
     if second_row1 is not None and str(second_row1.get("Beskrivelse", "")).startswith("GSM"):
@@ -985,19 +992,28 @@ elif st.session_state.input_mode == "excel_batch":
             # COUPLINGS
             # ---------------------------------
 
-            for r in second_rows:
-
-                if r is None:
-                    continue
-
+            # Single-coupling detection: second_row2 is None means only one coupling in summary.
+            # Mirror second_row1 into second_row2 and use Antall=2.
+            if second_row1 is not None and second_row2 is None:
+                second_row2 = second_row1
+                second_rows = [second_row1, second_row2]
                 output_rows.append([
-                    r["Prod.no"],
-                    r["Beskrivelse"],
+                    second_row1["Prod.no"],
+                    second_row1["Beskrivelse"],
                     lager_nr,
-                    antall
+                    2 * antall
                 ])
-                
-                
+            else:
+                for r in second_rows:
+                    if r is None:
+                        continue
+                    output_rows.append([
+                        r["Prod.no"],
+                        r["Beskrivelse"],
+                        lager_nr,
+                        antall
+                    ])
+
             # ---------------------------------
             # HYLSE (MISSING PART - ADD THIS)
             # ---------------------------------
