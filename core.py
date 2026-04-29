@@ -224,7 +224,11 @@ def find_matches_from_summary(first_line, df1, df2_all, material_pref=None):
         elif "stål" in mp or "stal" in mp or "st" in mp:
             preferred_marker = "st"
 
+    # Collect candidates where BOTH couplings are found in the same sheet
     candidate_sheets = []
+    # Collect candidates where only coupling 1 is found (single-coupling summary lines)
+    candidate_sheets_single = []
+
     for sheet_name, df in df2_all.items():
         dfc = clean_columns(df) if isinstance(df, pd.DataFrame) else df
         found1 = None
@@ -235,57 +239,46 @@ def find_matches_from_summary(first_line, df1, df2_all, material_pref=None):
                 found1 = r
             if part4 and (desc.startswith(part4) or part4 in desc):
                 found2 = r
-            if found1 is not None and found2 is not None:
+            if found1 is not None and (found2 is not None or not part4):
                 break
         if found1 is not None and found2 is not None:
             candidate_sheets.append((sheet_name, found1, found2))
+        elif found1 is not None and not part4:
+            candidate_sheets_single.append((sheet_name, found1))
+
+    def pick_preferred(candidates_with_two):
+        if preferred_marker:
+            for sheet_name, f1, f2 in candidates_with_two:
+                if preferred_marker in sheet_name:
+                    return (sheet_name, f1, f2)
+        return candidates_with_two[0] if candidates_with_two else None
+
+    def pick_preferred_single(candidates_single):
+        if preferred_marker:
+            for sheet_name, f1 in candidates_single:
+                if preferred_marker in sheet_name:
+                    return (sheet_name, f1)
+        return candidates_single[0] if candidates_single else None
+
+    def extract_size(sheet_name):
+        m = re.match(r"Kuplinger\s+(\d{1,3})", sheet_name)
+        if m:
+            s = m.group(1)
+            return s.zfill(2) if len(s) < 2 else s
+        return None
 
     if candidate_sheets:
-        picked = None
-        if preferred_marker:
-            for sheet_name, f1, f2 in candidate_sheets:
-                if preferred_marker in sheet_name:
-                    picked = (sheet_name, f1, f2)
-                    break
-        if not picked:
-            picked = candidate_sheets[0]
+        picked = pick_preferred(candidate_sheets)
         sheet_name_found, second_row1, second_row2 = picked
-        m = re.match(r"Kuplinger\s+(\d{1,3})", sheet_name_found)
-        if m:
-            size_str = m.group(1)
-            if len(size_str) < 2:
-                size_str = size_str.zfill(2)
+        size_str = extract_size(sheet_name_found)
         return selected_row, second_row1, second_row2, sheet_name_found, size_str, length_int
 
-    for sheet_name, df in df2_all.items():
-        dfc = clean_columns(df) if isinstance(df, pd.DataFrame) else df
-        if second_row1 is None and part3:
-            for _, r in dfc.iterrows():
-                desc = norm_key(r.get("Beskrivelse", ""))
-                if desc.startswith(part3) or part3 in desc:
-                    second_row1 = r
-                    sheet_name_found = sheet_name if sheet_name_found is None else sheet_name_found
-                    if size_str is None:
-                        m = re.match(r"Kuplinger\s+(\d{1,3})", sheet_name)
-                        if m:
-                            size_str = m.group(1)
-                            if len(size_str) < 2:
-                                size_str = size_str.zfill(2)
-                    break
-        if second_row2 is None and part4:
-            for _, r in dfc.iterrows():
-                desc = norm_key(r.get("Beskrivelse", ""))
-                if desc.startswith(part4) or part4 in desc:
-                    second_row2 = r
-                    if sheet_name_found is None:
-                        sheet_name_found = sheet_name
-                        if size_str is None:
-                            m = re.match(r"Kuplinger\s+(\d{1,3})", sheet_name)
-                            if m:
-                                size_str = m.group(1)
-                                if len(size_str) < 2:
-                                    size_str = size_str.zfill(2)
-                    break
+    if candidate_sheets_single:
+        picked = pick_preferred_single(candidate_sheets_single)
+        sheet_name_found, second_row1 = picked
+        second_row2 = None
+        size_str = extract_size(sheet_name_found)
+        return selected_row, second_row1, second_row2, sheet_name_found, size_str, length_int
 
     return selected_row, second_row1, second_row2, sheet_name_found, size_str, length_int
 
