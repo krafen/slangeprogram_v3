@@ -542,10 +542,10 @@ with col1:
     elif mode_choice == "🖱 Velg Slange og Kuplinger":
         st.session_state.input_mode = "full"
     
-    elif mode_choice == "📋 Lim inn rader for Sertifikat":
+    elif mode_choice == "📋 Trykktestsertifikater fra Excel":
         st.session_state.input_mode = "certificate"
         
-    elif mode_choice == "📂 Excel – flere slanger":
+    elif mode_choice == "📂 Slangeliste fra Excel":
         st.session_state.input_mode = "excel_batch"
 
 # -------------------------------------------------
@@ -553,7 +553,7 @@ with col1:
 # -------------------------------------------------
 
 if st.session_state.input_mode == "certificate":
-    st.header("📋 Lim inn rader for Sertifikat")
+    st.header("📋 Trykktestsertifikater fra Excel")
 
     with open(sertifikat_mal, "rb") as file:
         st.download_button(
@@ -867,7 +867,7 @@ if st.session_state.input_mode == "quick":
 
 elif st.session_state.input_mode == "excel_batch":
 
-    st.header("📂 Excel – flere slanger")
+    st.header("📂 Slangeliste fra Excel")
 
     with open(fler_slange_mal, "rb") as file:
         btn = st.download_button(
