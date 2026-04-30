@@ -210,6 +210,7 @@ SECOND_FILE = "kuplinger_316.xlsx"
 CERT_TEMPLATE = "Mal Trykktest Sertikat.xlsx"
 SLUTT_TEMPLATE = "Mal sluttkontroll slanger.xlsx"
 fler_slange_mal = "MAL_slangebeskrivelse_flere_rader.xlsx"
+sertifikat_mal = "MAL_Lim_inn_rader_for_Sertifikat.xlsx"
 
 
 # -------------------------------------------------
@@ -402,7 +403,7 @@ def process_and_add_hose(selected_row, second_row1, second_row2, sheet_name_foun
                 dnv_cert_row.get("Prod.no", ""),
                 dnv_cert_row.get("Beskrivelse", ""),
                 int(lager),
-                2
+                1
             ])
 
     if pressure_test:
@@ -553,21 +554,32 @@ with col1:
 
 if st.session_state.input_mode == "certificate":
     st.header("📋 Lim inn rader for Sertifikat")
-    #st.info("OBS! Du kan ikke bruke komma, men må bruke punktum, f.eks 8,5 blir 8.5")
 
-    if "certificate_input_df" not in st.session_state:
-        st.session_state.certificate_input_df = pd.DataFrame(
-            [{"Prod.no": "", "Beskrivelse": "", "Lager": "", "Antall": ""}] * 20
+    with open(sertifikat_mal, "rb") as file:
+        st.download_button(
+            label="Last ned MAL",
+            data=file,
+            file_name="MAL_Lim_inn_rader_for_Sertifikat.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
 
-    df_editor = st.data_editor(
-        st.session_state.certificate_input_df,
-        num_rows="dynamic",
-        use_container_width=True,
-        key="certificate_editor",
-        hide_index=True
+    uploaded_cert_file = st.file_uploader(
+        "Last opp utfylt MAL_Lim_inn_rader_for_Sertifikat.xlsx",
+        type=["xlsx"],
+        key="cert_file_uploader"
     )
-    st.session_state.certificate_input_df = df_editor
+
+    if uploaded_cert_file is None:
+        st.stop()
+
+    try:
+        df_editor = pd.read_excel(uploaded_cert_file)
+    except Exception as e:
+        st.error(f"Kunne ikke lese Excel: {e}")
+        st.stop()
+
+    st.subheader("Importerte rader")
+    st.dataframe(df_editor, use_container_width=True, hide_index=True)
 
     st.divider()
     st.subheader("📋 Trykktest Detaljer")
