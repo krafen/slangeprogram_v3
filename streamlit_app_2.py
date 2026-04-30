@@ -530,7 +530,7 @@ with col1:
             "⌨️ Skriv inn Slangebeskrivelse",
             "🖱 Velg Slange og Kuplinger",
             "📋 Trykktestsertifikater fra Excel",
-            "📂 Slangeliste fra Exce"
+            "📂 Slangeliste fra Excel"
         ],
         index=0,
         key="mode_radio"
