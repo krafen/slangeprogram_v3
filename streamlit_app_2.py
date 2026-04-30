@@ -529,8 +529,8 @@ with col1:
         options=[
             "⌨️ Skriv inn Slangebeskrivelse",
             "🖱 Velg Slange og Kuplinger",
-            "📋 Lim inn rader for Sertifikat",
-            "📂 Excel – flere slanger"
+            "📋 Trykktestsertifikater fra Exce",
+            "📂 Slangeliste fra Exce"
         ],
         index=0,
         key="mode_radio"
