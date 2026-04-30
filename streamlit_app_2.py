@@ -529,7 +529,7 @@ with col1:
         options=[
             "⌨️ Skriv inn Slangebeskrivelse",
             "🖱 Velg Slange og Kuplinger",
-            "📋 Trykktestsertifikater fra Exce",
+            "📋 Trykktestsertifikater fra Excel",
             "📂 Slangeliste fra Exce"
         ],
         index=0,
