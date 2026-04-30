@@ -1463,10 +1463,23 @@ elif st.session_state.input_mode == "full":
                 sheet_name = f"Kuplinger {size}(316)"
         else:  # stål
             type_approval_val = type_approval
+            type_approval_val1 = type_approval1
             gates_in_k = False
             
             # Check for Type Approval with Gates in column K
             if type_approval_val:
+                try:
+                    slange_hylse_df = core.clean_columns(pd.read_excel(FIRST_FILE, sheet_name="Slange+Hylse"))
+                    prod_no = selected_row.get("Prod.no")
+                    match = slange_hylse_df.loc[slange_hylse_df["Prod.no"] == prod_no]
+                    if not match.empty and len(slange_hylse_df.columns) > 10:
+                        col_k_val = str(match.iloc[0, 10])
+                        if "Gates" in col_k_val:
+                            gates_in_k = True
+                except:
+                    pass
+                
+            elif type_approval_val1:
                 try:
                     slange_hylse_df = core.clean_columns(pd.read_excel(FIRST_FILE, sheet_name="Slange+Hylse"))
                     prod_no = selected_row.get("Prod.no")
@@ -1482,6 +1495,10 @@ elif st.session_state.input_mode == "full":
             if type_approval_val and gates_in_k:
                 sheet_key = "(M-st)"
                 sheet_name = f"Kuplinger {size}(M-st)"
+            elif type_approval_val1 and gates_in_k:
+                sheet_key = "(M-st)"
+                sheet_name = f"Kuplinger {size}(M-st)"
+            
             else:
                 desc = str(selected_row.get("Beskrivelse", ""))
                 if len(desc) > 2 and desc[0] == "G" and desc[2] == "K":
