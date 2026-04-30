@@ -237,12 +237,19 @@ abs_sert_df = core.clean_columns(
     pd.read_excel(FIRST_FILE, sheet_name="ABS Sert.")
 )
 
+def _get_cert_row(prod_no):
+    """Return the row from ABS Sert. where column A matches prod_no."""
+    col_a = abs_sert_df.columns[0]  # Prod.no (column A)
+    matches = abs_sert_df[abs_sert_df[col_a].astype(str).str.strip() == str(prod_no)]
+    return matches.iloc[0] if not matches.empty else None
+
 # -------------------------------------------------
 # SESSION STATE
 # -------------------------------------------------
 
 if "abs_selected_any" not in st.session_state:
     st.session_state.abs_selected_any = False
+
 
 if "output_rows" not in st.session_state:
     st.session_state.output_rows = []
@@ -291,7 +298,7 @@ def adjust_length(desc, material):
     return desc[:base_len + extra]    
 def process_and_add_hose(selected_row, second_row1, second_row2, sheet_name_found, size_str, 
                         length_int, material, lager, pos_mark, posnr, input_linje, inputlinje, pressure_test, 
-                        pressure_details, antall_slanger,prikling=False, first_line="", angle=""):
+                        pressure_details, antall_slanger, prikling=False, first_line="", angle="", dnv=False):
     """Process hose data and add to output rows"""
     rows = []
     start_len = len(st.session_state.output_rows)
@@ -388,6 +395,16 @@ def process_and_add_hose(selected_row, second_row1, second_row2, sheet_name_foun
                 1
             ])
 
+    if dnv:
+        dnv_cert_row = _get_cert_row("90003")
+        if dnv_cert_row is not None:
+            rows.append([
+                dnv_cert_row.get("Prod.no", ""),
+                dnv_cert_row.get("Beskrivelse", ""),
+                int(lager),
+                2
+            ])
+
     if pressure_test:
         trykktest_row = core.get_trykktest_prodno(size_str, length_int or 1000, trykktest_df)
         if trykktest_row is not None:
@@ -424,21 +441,19 @@ def generate_excel():
     # ADD ABS CERT ROW (ONLY ONCE, ALWAYS AT BOTTOM)
     # -------------------------------------------------
     
-    if st.session_state.abs_selected_any and not abs_sert_df.empty:
-    
+    if st.session_state.abs_selected_any:
+
         lager_value = rows_for_excel[-1][2] if rows_for_excel else 3
-    
-        # spacer line
-        rows_for_excel.append(["1", "", lager_value, ""])
-    
-        abs_row = abs_sert_df.iloc[0]
-    
-        rows_for_excel.append([
-            abs_row.get("Prod.no", ""),
-            abs_row.get("Beskrivelse", ""),
-            lager_value,
-            1
-        ])
+
+        abs_row = _get_cert_row("90478")
+        if abs_row is not None:
+            rows_for_excel.append(["1", "", lager_value, ""])
+            rows_for_excel.append([
+                abs_row.get("Prod.no", ""),
+                abs_row.get("Beskrivelse", ""),
+                lager_value,
+                1
+            ])
     
     output_wb = core.create_output_workbook(
         [[r[0], r[1], r[2], r[3]] for r in rows_for_excel]
@@ -819,7 +834,8 @@ if st.session_state.input_mode == "quick":
                     process_and_add_hose(
                         selected_row, second_row1, second_row2, sheet_name_found, size_str,
                         length_int, material, lager, pos_mark, posnr, input_linje, inputlinje, pressure_test,
-                        pressure_details, antall_slanger, prikling=prikling, first_line=first_line
+                        pressure_details, antall_slanger, prikling=prikling, first_line=first_line,
+                        dnv=type_approval
                     )
                     
                     if type_approval1:
@@ -876,6 +892,12 @@ elif st.session_state.input_mode == "excel_batch":
 
     with col2:
         add_prikling = st.checkbox("Legg til Prikling")
+
+    col3, col4 = st.columns(2)
+    with col3:
+        add_abs = st.checkbox("Type Approval (ABS)?")
+    with col4:
+        add_dnv = st.checkbox("Type Approval (DNV)?")
 
     # ---------------------------------
     # TRYKKTEST DETAILS UI
@@ -1105,6 +1127,20 @@ elif st.session_state.input_mode == "excel_batch":
                     ])
 
             # ---------------------------------
+            # DNV (per hose)
+            # ---------------------------------
+
+            if add_dnv:
+                dnv_cert_row = _get_cert_row("90003")
+                if dnv_cert_row is not None:
+                    output_rows.append([
+                        dnv_cert_row.get("Prod.no", ""),
+                        dnv_cert_row.get("Beskrivelse", ""),
+                        lager_nr,
+                        antall
+                    ])
+
+            # ---------------------------------
             # SPACER ROW (same as Quick Mode)
             # ---------------------------------
 
@@ -1141,6 +1177,34 @@ elif st.session_state.input_mode == "excel_batch":
 
             st.warning("Ingen rader generert.")
             st.stop()
+
+        # ---------------------------------
+        # ABS / DNV CERT ROWS (appended once at bottom)
+        # ---------------------------------
+
+        last_lager = output_rows[-1][2] if output_rows else ""
+
+        if add_abs:
+            abs_cert_row = _get_cert_row("90478")
+            if abs_cert_row is not None:
+                output_rows.append(["1", "", last_lager, ""])
+                output_rows.append([
+                    abs_cert_row.get("Prod.no", ""),
+                    abs_cert_row.get("Beskrivelse", ""),
+                    last_lager,
+                    1
+                ])
+
+        if add_dnv:
+            dnv_cert_row = _get_cert_row("90003")
+            if dnv_cert_row is not None:
+                output_rows.append(["1", "", last_lager, ""])
+                output_rows.append([
+                    dnv_cert_row.get("Prod.no", ""),
+                    dnv_cert_row.get("Beskrivelse", ""),
+                    last_lager,
+                    1
+                ])
 
         # ---------------------------------
         # CREATE OUTPUT WORKBOOK
@@ -1644,7 +1708,8 @@ elif st.session_state.input_mode == "full":
             process_and_add_hose(
                 selected_row, row_c1, row_c2, sheet_name, size,
                 length, material, lager, pos_mark, posnr, input_linje, inputlinje, pressure_test,
-                pressure_details, antall_slanger, prikling=prikling, first_line="", angle=angle
+                pressure_details, antall_slanger, prikling=prikling, first_line="", angle=angle,
+                dnv=type_approval
             )
     
             # Reset selections
