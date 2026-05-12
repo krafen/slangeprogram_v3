@@ -529,8 +529,8 @@ with col1:
         options=[
             "⌨️ Skriv inn Slangebeskrivelse",
             "🖱 Velg Slange og Kuplinger",
-            "📋 Trykktestsertifikater fra Excel",
-            "📂 Slangeliste fra Excel"
+            "📋 Lim inn rader for Sertifikat",
+            "📂 Excel – flere slanger"
         ],
         index=0,
         key="mode_radio"
@@ -538,22 +538,25 @@ with col1:
     
     if mode_choice == "⌨️ Skriv inn Slangebeskrivelse":
         st.session_state.input_mode = "quick"
+        st.session_state.pop("cert_df", None)
     
     elif mode_choice == "🖱 Velg Slange og Kuplinger":
         st.session_state.input_mode = "full"
+        st.session_state.pop("cert_df", None)
     
-    elif mode_choice == "📋 Trykktestsertifikater fra Excel":
+    elif mode_choice == "📋 Lim inn rader for Sertifikat":
         st.session_state.input_mode = "certificate"
         
-    elif mode_choice == "📂 Slangeliste fra Excel":
+    elif mode_choice == "📂 Excel – flere slanger":
         st.session_state.input_mode = "excel_batch"
+        st.session_state.pop("cert_df", None)
 
 # -------------------------------------------------
 # CERTIFICATE PASTE MODE (ISOLATED)
 # -------------------------------------------------
 
 if st.session_state.input_mode == "certificate":
-    st.header("📋 Trykktestsertifikater fra Excel")
+    st.header("📋 Lim inn rader for Sertifikat")
 
     with open(sertifikat_mal, "rb") as file:
         st.download_button(
@@ -569,14 +572,17 @@ if st.session_state.input_mode == "certificate":
         key="cert_file_uploader"
     )
 
-    if uploaded_cert_file is None:
+    if uploaded_cert_file is not None:
+        try:
+            st.session_state.cert_df = pd.read_excel(uploaded_cert_file)
+        except Exception as e:
+            st.error(f"Kunne ikke lese Excel: {e}")
+            st.stop()
+
+    if "cert_df" not in st.session_state:
         st.stop()
 
-    try:
-        df_editor = pd.read_excel(uploaded_cert_file)
-    except Exception as e:
-        st.error(f"Kunne ikke lese Excel: {e}")
-        st.stop()
+    df_editor = st.session_state.cert_df
 
     st.subheader("Importerte rader")
     st.dataframe(df_editor, use_container_width=True, hide_index=True)
@@ -596,7 +602,18 @@ if st.session_state.input_mode == "certificate":
 
     if st.button("📄 Generer Sertifikater", use_container_width=True):
         df_clean = df_editor.dropna(subset=["Prod.no"])
-        
+        df_clean = df_clean[df_clean["Prod.no"].astype(str).str.strip() != ""]
+
+        # Normalize Prod.no: Excel reads integer 1 as float "1.0" — strip trailing .0
+        def norm_pno(val):
+            s = str(val).strip()
+            if s.endswith(".0"):
+                try:
+                    s = str(int(float(s)))
+                except:
+                    pass
+            return s
+
         if df_clean.empty:
             st.warning("Tabellen er tom.")
         else:
@@ -609,7 +626,7 @@ if st.session_state.input_mode == "certificate":
             MONT_NUMBERS = ["90011", "90012", "90013", "90800"]
 
             for _, row in df_clean.iterrows():
-                p_no = str(row["Prod.no"]).strip()
+                p_no = norm_pno(row["Prod.no"])
                 
                 if p_no == "1":
                     if current_hose_row is not None:
@@ -622,7 +639,7 @@ if st.session_state.input_mode == "certificate":
                     current_hose_row = row
                     current_components = []
                 else:
-                    current_components.append(row) # Lagrer hele raden for å sjekke Antall senere
+                    current_components.append(row)
 
             if current_hose_row is not None:
                 assemblies.append({"hose": current_hose_row, "components": current_components})
@@ -632,17 +649,14 @@ if st.session_state.input_mode == "certificate":
             success_count = 0
 
             for idx, asm in enumerate(assemblies):
-                h_pno = str(asm["hose"]["Prod.no"]).strip()
+                h_pno = norm_pno(asm["hose"]["Prod.no"])
                 h_match = df1[df1["Prod.no"].astype(str).str.strip() == h_pno]
 
                 if not h_match.empty:
-                    # Finn ANTALL basert på MONT-raden
-                    # --- Inne i loopen for assemblies ---
-
                     # 1. Finn ANTALL basert på MONT-raden (90011, 90012, 90013 eller 90800)
                     real_antall = 1
                     for comp in asm["components"]:
-                        if str(comp["Prod.no"]).strip() in MONT_NUMBERS:
+                        if norm_pno(comp["Prod.no"]) in MONT_NUMBERS:
                             try:
                                 # Håndterer både tall, strenger med punktum og strenger med komma
                                 val_str = str(comp["Antall"]).replace(',', '.')
@@ -667,7 +681,7 @@ if st.session_state.input_mode == "certificate":
                     # Finn Kuplinger for sertifikatet (leter kun etter tekniske data)
                     c_tech_data = []
                     for comp in asm["components"]:
-                        c_pno = str(comp["Prod.no"]).strip()
+                        c_pno = norm_pno(comp["Prod.no"])
                         # Hopp over MONT og andre tjenester når vi leter etter kuplings-stål
                         if c_pno in MONT_NUMBERS or c_pno.startswith("900"):
                             continue
@@ -867,7 +881,7 @@ if st.session_state.input_mode == "quick":
 
 elif st.session_state.input_mode == "excel_batch":
 
-    st.header("📂 Slangeliste fra Excel")
+    st.header("📂 Excel – flere slanger")
 
     with open(fler_slange_mal, "rb") as file:
         btn = st.download_button(
@@ -1463,23 +1477,10 @@ elif st.session_state.input_mode == "full":
                 sheet_name = f"Kuplinger {size}(316)"
         else:  # stål
             type_approval_val = type_approval
-            type_approval_val1 = type_approval1
             gates_in_k = False
             
             # Check for Type Approval with Gates in column K
             if type_approval_val:
-                try:
-                    slange_hylse_df = core.clean_columns(pd.read_excel(FIRST_FILE, sheet_name="Slange+Hylse"))
-                    prod_no = selected_row.get("Prod.no")
-                    match = slange_hylse_df.loc[slange_hylse_df["Prod.no"] == prod_no]
-                    if not match.empty and len(slange_hylse_df.columns) > 10:
-                        col_k_val = str(match.iloc[0, 10])
-                        if "Gates" in col_k_val:
-                            gates_in_k = True
-                except:
-                    pass
-                
-            elif type_approval_val1:
                 try:
                     slange_hylse_df = core.clean_columns(pd.read_excel(FIRST_FILE, sheet_name="Slange+Hylse"))
                     prod_no = selected_row.get("Prod.no")
@@ -1495,10 +1496,6 @@ elif st.session_state.input_mode == "full":
             if type_approval_val and gates_in_k:
                 sheet_key = "(M-st)"
                 sheet_name = f"Kuplinger {size}(M-st)"
-            elif type_approval_val1 and gates_in_k:
-                sheet_key = "(M-st)"
-                sheet_name = f"Kuplinger {size}(M-st)"
-            
             else:
                 desc = str(selected_row.get("Beskrivelse", ""))
                 if len(desc) > 2 and desc[0] == "G" and desc[2] == "K":
