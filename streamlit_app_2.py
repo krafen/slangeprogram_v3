@@ -1,17 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-Slangeprogram - Streamlit Version (refactored)
 
-Behavior-preserving refactor of the original app:
-- All 4 modes (Quick / Full / Certificate paste / Excel batch) work exactly
-  as before, with the same fields and the same order of steps.
-- Repeated UI blocks (lager/antall, pos/delnr, pressure-test details,
-  AgGrid selection tables) are pulled into small helper functions.
-- Shared business-logic bits that were duplicated in the app (adjust_length,
-  the Prod.no normalizer, the MONT number list, the coupling-sheet lookup)
-  now live in core.py and are reused from there.
-- A lighter, cleaner visual theme replaces the old dark-photo-background CSS.
-"""
 
 import io
 from datetime import datetime
