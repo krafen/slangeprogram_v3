@@ -14,6 +14,18 @@ from datetime import datetime as dt
 
 
 # -------------------------------------------------
+# SHARED CONSTANTS
+# -------------------------------------------------
+
+# Warehouse codes shown in "Lager" dropdowns across the app.
+LAGER_OPTIONS = {"3": "Lillestrøm", "1": "Ålesund", "5": "Trondheim"}
+
+# Prod.no values that identify a "MONT" (assembly) row. Used to figure out
+# how many physical hoses a pasted/imported row block actually represents.
+MONT_NUMBERS = ["90011", "90012", "90013", "90800"]
+
+
+# -------------------------------------------------
 # DATA LOADING
 # -------------------------------------------------
 
@@ -40,6 +52,76 @@ def load_support_sheets(first_file_path):
 # -------------------------------------------------
 # LOOKUPS
 # -------------------------------------------------
+
+def normalize_prod_no(val):
+    """Normalize a Prod.no value read from Excel.
+
+    Excel/pandas often reads whole-number product codes as floats
+    (e.g. 1 -> "1.0"). This strips the trailing ".0" so values compare
+    cleanly as plain strings.
+    """
+    s = str(val).strip()
+    if s.endswith(".0"):
+        try:
+            s = str(int(float(s)))
+        except Exception:
+            pass
+    return s
+
+
+def determine_coupling_sheet_name(selected_row, material, type_approval, first_file_path):
+    """Work out which 'Kuplinger <size>(...)' sheet applies to a chosen hose.
+
+    Mirrors the sheet-selection rules used in "Velg Slange og Kuplinger":
+    - syrefast (316) hoses look up the "Slange+Hylse" sheet to decide between
+      a plain 316 coupling set and a 5-316 set.
+    - stål hoses look at the hose description (and, for Type Approval hoses,
+      whether "Gates" appears in the Slange+Hylse sheet) to decide between
+      st / GS / GSM / M-st coupling sets.
+    """
+    size = str(selected_row["Dimensjon"]).zfill(2)
+
+    if material == "syrefast":
+        try:
+            slange_hylse_df = clean_columns(
+                pd.read_excel(first_file_path, sheet_name="Slange+Hylse")
+            )
+            prod_no = selected_row.get("Prod.no")
+            match = slange_hylse_df.loc[slange_hylse_df["Prod.no"] == prod_no]
+            if not match.empty and len(slange_hylse_df.columns) > 11:
+                col_l_val = str(match.iloc[0, 11])
+                if "5" in col_l_val:
+                    return f"Kuplinger {size}(5-316)"
+            return f"Kuplinger {size}(316)"
+        except Exception:
+            return f"Kuplinger {size}(316)"
+
+    # material == "stål"
+    gates_in_k = False
+    if type_approval:
+        try:
+            slange_hylse_df = clean_columns(
+                pd.read_excel(first_file_path, sheet_name="Slange+Hylse")
+            )
+            prod_no = selected_row.get("Prod.no")
+            match = slange_hylse_df.loc[slange_hylse_df["Prod.no"] == prod_no]
+            if not match.empty and len(slange_hylse_df.columns) > 10:
+                col_k_val = str(match.iloc[0, 10])
+                if "Gates" in col_k_val:
+                    gates_in_k = True
+        except Exception:
+            pass
+
+    if type_approval and gates_in_k:
+        return f"Kuplinger {size}(M-st)"
+
+    desc = str(selected_row.get("Beskrivelse", ""))
+    if len(desc) > 2 and desc[0] == "G" and desc[2] == "K":
+        if desc.startswith("G5K-24") or desc.startswith("G6K-24"):
+            return f"Kuplinger {size}(GSM)"
+        return f"Kuplinger {size}(GS)"
+    return f"Kuplinger {size}(st)"
+
 
 def get_trykktest_prodno(size, length, trykktest_df):
     if size is None:
