@@ -298,6 +298,14 @@ def find_matches_from_summary(first_line, df1, df2_all, material_pref=None):
     def norm_key(x):
         return str(x).strip()
 
+    def strip_dashes(x):
+        """Remove dashes so 'G12-24-90' and 'G122490' compare as equal.
+        Used only for the Kupling 1 / Kupling 2 lookups below."""
+        return str(x).replace("-", "").strip()
+
+    part3_nodash = strip_dashes(part3) if part3 else None
+    part4_nodash = strip_dashes(part4) if part4 else None
+
     preferred_marker = None
     if material_pref:
         mp = material_pref.lower()
@@ -317,9 +325,10 @@ def find_matches_from_summary(first_line, df1, df2_all, material_pref=None):
         found2 = None
         for _, r in dfc.iterrows():
             desc = norm_key(r.get("Beskrivelse", ""))
-            if part3 and (desc.startswith(part3) or part3 in desc):
+            desc_nodash = strip_dashes(desc)
+            if part3_nodash and (desc_nodash.startswith(part3_nodash) or part3_nodash in desc_nodash):
                 found1 = r
-            if part4 and (desc.startswith(part4) or part4 in desc):
+            if part4_nodash and (desc_nodash.startswith(part4_nodash) or part4_nodash in desc_nodash):
                 found2 = r
             if found1 is not None and (found2 is not None or not part4):
                 break
