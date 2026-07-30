@@ -281,6 +281,24 @@ def find_matches_from_summary(first_line, df1, df2_all, material_pref=None):
     except Exception:
         length_int = None
 
+    # "x2" / "X2" double-marker handling:
+    # - Kupling 1 field ending in x2/X2 (e.g. "3010606x2") means "this coupling,
+    #   doubled" -> strip the suffix so the real code matches normally; Kupling 2
+    #   is already absent in this form, so the existing "second coupling missing
+    #   -> mirror + double" logic below takes care of the rest.
+    # - Kupling 2 field that IS just "x2"/"X2" (e.g. ".../3010606/x2") means the
+    #   same thing spelled out as its own segment -> treat it as if Kupling 2
+    #   were not given at all.
+    if part3:
+        v3 = str(part3)
+        if len(v3) > 2 and v3[-2:].lower() == "x2":
+            part3 = v3[:-2]
+
+    if part4:
+        v4 = str(part4).strip()
+        if v4.lower() == "x2":
+            part4 = None
+
     # Find selected_first_row
     selected_row = None
     if part1:
