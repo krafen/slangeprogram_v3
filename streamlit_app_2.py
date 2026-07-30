@@ -565,7 +565,7 @@ def render_quick_mode(df1, df2_all, mont_df, trykktest_df, prikling_df, get_cert
     render_type_approval_info(type_approval, type_approval1)
 
     first_line = st.text_input(
-        "Slangebeskrivelse)",
+        "Slangebeskrivelse",
         placeholder="Slange/Lengde/Kupling 1/Kupling 2",
         key="quick_first_line",
     )
