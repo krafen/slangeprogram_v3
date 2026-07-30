@@ -56,11 +56,12 @@ def load_support_sheets(first_file_path):
 def detect_material(kupling1_desc):
     """Auto-detect stål vs syrefast from the Kupling 1 description.
 
-    A description ending in "-316" means syrefast (stainless); anything
-    else means stål (steel). Used so the user doesn't have to pick a
-    material manually outside of "Velg slange og Kuplinger".
+    "-316" only ever appears in a syrefast (stainless) coupling's
+    description, so if it shows up anywhere in the text, the material is
+    syrefast; otherwise it's stål (steel). Used so the user doesn't have to
+    pick a material manually outside of "Velg slange og Kuplinger".
     """
-    if kupling1_desc and str(kupling1_desc).strip().endswith("-316"):
+    if kupling1_desc and "-316" in str(kupling1_desc):
         return "syrefast"
     return "stål"
 
@@ -304,7 +305,7 @@ def find_matches_from_summary(first_line, df1, df2_all, material_pref=None):
     if part3:
         v3 = str(part3)
         if len(v3) > 2 and v3[-2:].lower() == "x2":
-            part3 = v3[:-2]
+            part3 = v3[:-2].rstrip("- ")
 
     if part4:
         v4 = str(part4).strip()
