@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="utf-8" />
+<script src="https://cdn.jsdelivr.net/npm/jsuites/dist/jsuites.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsuites/dist/jsuites.css" type="text/css" />
+<script src="https://cdn.jsdelivr.net/npm/jspreadsheet-ce@4/dist/index.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jspreadsheet-ce@4/dist/jspreadsheet.min.css" type="text/css" />
+<style>
+  html, body {
+    margin: 0;
+    padding: 4px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  .jexcel_container {
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+    border-radius: 4px;
+  }
+</style>
+</head>
+<body>
+<div id="spreadsheet"></div>
+<script>
+  // =====================================================================
+  // Minimal Streamlit Components wire-protocol shim (vanilla JS, no build
+  // step). This intentionally mirrors streamlit-component-lib's streamlit.ts
+  // message-for-message:
+  //   https://github.com/streamlit/streamlit/blob/develop/frontend/component-lib/src/streamlit.ts
+  // so it stays compatible with how Streamlit's frontend actually listens
+  // for and dispatches these postMessage events.
+  // =====================================================================
+  const Streamlit = (() => {
+    const RENDER_EVENT = "streamlit:render";
+    let lastFrameHeight = null;
+    const renderListeners = [];
+
+    function sendBackMsg(type, data) {
+      window.parent.postMessage(
+        Object.assign({ isStreamlitMessage: true, type: type }, data || {}),
+        "*"
+      );
+    }
+
+    function setComponentReady() {
+      window.addEventListener("message", (event) => {
+        const data = event.data;
+        if (data && data.type === RENDER_EVENT) {
+          const args = data.args || {};
+          renderListeners.forEach((callback) => callback(args));
+        }
+      });
+      sendBackMsg("streamlit:componentReady", { apiVersion: 1 });
+    }
+
+    function setFrameHeight(height) {
+      const resolvedHeight = height === undefined ? document.body.scrollHeight : height;
+      if (resolvedHeight === lastFrameHeight) {
+        return;
+      }
+      lastFrameHeight = resolvedHeight;
+      sendBackMsg("streamlit:setFrameHeight", { height: resolvedHeight });
+    }
+
+    function setComponentValue(value) {
+      sendBackMsg("streamlit:setComponentValue", { value: value, dataType: "json" });
+    }
+
+    function onRender(callback) {
+      renderListeners.push(callback);
+    }
+
+    return { setComponentReady, setFrameHeight, setComponentValue, onRender };
+  })();
+
+  // =====================================================================
+  // jspreadsheet-ce backed editable grid, bound bidirectionally to Python.
+  // =====================================================================
+  let spreadsheetInstance = null;
+  let lastDataSignature = null;
+
+  function sendValueToStreamlit() {
+    if (!spreadsheetInstance) return;
+    const currentData = spreadsheetInstance.getData();
+    lastDataSignature = JSON.stringify(currentData);
+    Streamlit.setComponentValue(currentData);
+    Streamlit.setFrameHeight();
+  }
+
+  function renderSpreadsheet(args) {
+    const data = args.data || [];
+    const columns = args.columns || [];
+    const height = args.height || 400;
+
+    // Streamlit reruns the whole script (and re-sends this render event) on
+    // *any* widget interaction anywhere on the page, not just ones touching
+    // this component. Only rebuild the grid when the incoming data actually
+    // differs from what we last sent/received - otherwise we'd wipe out the
+    // user's current edit, cursor position, and scroll on every unrelated
+    // click elsewhere in the app.
+    const incomingSignature = JSON.stringify(data);
+    if (spreadsheetInstance && incomingSignature === lastDataSignature) {
+      return;
+    }
+    lastDataSignature = incomingSignature;
+
+    const container = document.getElementById("spreadsheet");
+    container.innerHTML = "";
+    spreadsheetInstance = jspreadsheet(container, {
+      data: data.length ? data : [columns.map(() => "")],
+      columns: columns,
+      tableOverflow: true,
+      tableHeight: height + "px",
+      tableWidth: "100%",
+      allowInsertRow: true,
+      allowDeleteRow: true,
+      allowInsertColumn: false,
+      allowDeleteColumn: false,
+      columnSorting: false,
+      onchange: sendValueToStreamlit,
+      onafterchanges: sendValueToStreamlit,
+      oninsertrow: sendValueToStreamlit,
+      ondeleterow: sendValueToStreamlit,
+      onmoverow: sendValueToStreamlit,
+    });
+
+    Streamlit.setFrameHeight();
+    // Round-trip the initial grid back to Python immediately, so session
+    // state is consistent from the very first run, not just after the
+    // user's first edit.
+    sendValueToStreamlit();
+  }
+
+  Streamlit.onRender(renderSpreadsheet);
+  Streamlit.setComponentReady();
+  Streamlit.setFrameHeight();
+</script>
+</body>
+</html>
