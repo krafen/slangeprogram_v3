@@ -2,12 +2,16 @@
 
 
 import io
+import json
 from datetime import datetime
+from pathlib import Path
 
 import pandas as pd
 import openpyxl
 import streamlit as st
 from st_aggrid import AgGrid, GridOptionsBuilder
+import html
+import streamlit.components.v1 as components
 
 import core
 
@@ -333,6 +337,208 @@ def render_selection_table(df, visible_cols, key, hidden_cols=None, header_map=N
     return None
 
 
+
+
+
+def get_excel_rows():
+    """Henter nøyaktig de samme radene som skal inn i Excel-filen for Quick/Full Mode."""
+    rows_for_excel = [r.copy() for r in st.session_state.output_rows]
+
+    # Legg til ABS-sertifikat-rad hvis den er valgt (nøyaktig lik logikk som Excel-fila)
+    if st.session_state.abs_selected_any:
+        lager_value = rows_for_excel[-1][2] if rows_for_excel else 3
+        abs_row = st.session_state.get_cert_row("90478")
+        if abs_row is not None:
+            rows_for_excel.append(["1", "", lager_value, ""])
+            rows_for_excel.append(
+                [abs_row.get("Prod.no", ""), abs_row.get("Beskrivelse", ""), lager_value, 1]
+            )
+    return rows_for_excel
+
+def format_output_df(rows):
+    """Formaterer rader slik at:
+    - Prod.no alltid er hele tall (int) uten desimaler.
+    - Antall bruker komma (,) for desimaler.
+    """
+    formatted_rows = []
+    for r in rows:
+        pno, desc, lager, antall = r[0], r[1], r[2], r[3]
+
+        # 1. Prod.no -> Tving til heltall (int)
+        pno_str = ""
+        if pd.notna(pno) and str(pno).strip() != "":
+            try:
+                pno_str = str(int(float(str(pno).replace(",", "."))))
+            except (ValueError, TypeError):
+                pno_str = str(pno).strip()
+
+        # 2. Antall -> Bruk komma (,) for desimaler
+        antall_str = ""
+        if pd.notna(antall) and str(antall).strip() != "":
+            try:
+                f_val = float(str(antall).replace(",", "."))
+                if f_val.is_integer():
+                    antall_str = str(int(f_val))
+                else:
+                    antall_str = f"{f_val:.3f}".rstrip("0").rstrip(".").replace(".", ",")
+            except (ValueError, TypeError):
+                antall_str = str(antall).strip()
+
+        formatted_rows.append([pno_str, desc, lager, antall_str])
+
+    return pd.DataFrame(formatted_rows, columns=["Prod.no", "Beskrivelse", "Lager", "Antall"])
+
+
+def render_jspreadsheet_preview(df):
+    """Rendrer et ekte regneark (Excel / Google Sheets-klone) i Streamlit."""
+    data_list = df.values.tolist()
+    column_headers = [
+        {"title": "Prod.no", "width": 140},
+        {"title": "Beskrivelse", "width": 300},
+        {"title": "Lager", "width": 80},
+        {"title": "Antall", "width": 100},
+    ]
+
+    html_code = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <script src="https://cdn.jsdelivr.net/npm/jsuites/dist/jsuites.js"></script>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jsuites/dist/jsuites.css" type="text/css" />
+        <script src="https://cdn.jsdelivr.net/npm/jspreadsheet-ce@4/dist/index.min.js"></script>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/jspreadsheet-ce@4/dist/jspreadsheet.min.css" type="text/css" />
+        <style>
+            body {{
+                margin: 0;
+                padding: 5px;
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            }}
+            .jexcel_container {{
+                box-shadow: 0 1px 4px rgba(0,0,0,0.15);
+                border-radius: 4px;
+            }}
+        </style>
+    </head>
+    <body>
+        <div id="spreadsheet"></div>
+        <script>
+            var data = {json.dumps(data_list)};
+            var columns = {json.dumps(column_headers)};
+
+            jspreadsheet(document.getElementById('spreadsheet'), {{
+                data: data,
+                columns: columns,
+                tableOverflow: true,
+                tableHeight: '380px',
+                tableWidth: '100%',
+                allowInsertRow: true,
+                allowDeleteRow: true,
+                columnSorting: false,
+            }});
+        </script>
+    </body>
+    </html>
+    """
+    
+    calculated_height = min(max(180 + len(data_list) * 28, 250), 480)
+    components.html(html_code, height=calculated_height, scrolling=True)
+
+
+# =====================================================================
+# BIDIRECTIONAL JSPREADSHEET INPUT (custom Streamlit component)
+# =====================================================================
+# Same visual widget as render_jspreadsheet_preview() above, but editable
+# and wired back to Python via the Streamlit Components protocol, so it can
+# replace st.data_editor for the certificate/batch "paste your data" inputs.
+
+_JSPREADSHEET_COMPONENT_DIR = Path(__file__).parent / "components" / "jspreadsheet_editor"
+_jspreadsheet_editor_component = components.declare_component(
+    "jspreadsheet_editor", path=str(_JSPREADSHEET_COMPONENT_DIR)
+)
+
+_JSPREADSHEET_COLUMN_WIDTHS = {
+    "Prod.no": 120,
+    "Beskrivelse": 320,
+    "Lager": 80,
+    "Antall": 90,
+    "Slangebeskrivelse": 340,
+    "POS.nr": 100,
+    "Kundes delnummer": 160,
+}
+
+
+def _clean_editor_cell(value):
+    """Turn a whole-number float (e.g. 27056.0, common for Prod.no coming
+    out of an uploaded Excel file) into plain '27056' so the editable grid
+    doesn't show '.0' noise. Anything else is shown as plain text."""
+    if value is None or (isinstance(value, float) and pd.isna(value)):
+        return ""
+    try:
+        f_val = float(str(value).replace(",", "."))
+        if f_val.is_integer():
+            return str(int(f_val))
+        return str(value)
+    except (ValueError, TypeError):
+        return str(value)
+
+
+def jspreadsheet_editor(df, key, height=380, min_rows=12):
+    """A real, editable jspreadsheet-ce grid bound bidirectionally to a
+    DataFrame via a custom Streamlit component - the same spreadsheet look
+    as render_jspreadsheet_preview(), but editable and pasteable (typing,
+    Ctrl+V from Excel, inserting/deleting rows), replacing st.data_editor
+    for the certificate/batch input tables.
+
+    Uses an explicit revision counter (rather than comparing raw data) to
+    tell the frontend when to actually reload its grid. Streamlit always
+    reruns the whole script on every interaction, and the render args for
+    THIS run are computed from session_state as it was at the START of the
+    run - i.e. one step behind whatever the user just pasted/typed, which
+    was already sent to Python moments earlier. Rebuilding the grid whenever
+    that stale echo differs from the live grid would erase the user's most
+    recent edit before it's even visible for long. The revision only bumps
+    when the caller hands us genuinely different data (e.g. a fresh file
+    upload replacing the whole table), not on the routine "echo my own last
+    edit back to me" pattern.
+    """
+    columns = list(df.columns)
+    revision_key = f"_{key}_revision"
+    source_sig_key = f"_{key}_source_sig"
+
+    df_signature = df.to_csv(index=False)
+    if st.session_state.get(source_sig_key) != df_signature:
+        # The caller handed us different data than what we last round-tripped
+        # (a new file upload, a cleared table, etc.) - force the frontend to
+        # actually reload by bumping the revision.
+        st.session_state[source_sig_key] = df_signature
+        st.session_state[revision_key] = st.session_state.get(revision_key, 0) + 1
+
+    revision = st.session_state.get(revision_key, 0)
+
+    rows = [[_clean_editor_cell(v) for v in row] for row in df.astype(object).values.tolist()]
+    if len(rows) < min_rows:
+        rows = rows + [["" for _ in columns] for _ in range(min_rows - len(rows))]
+
+    column_config = [
+        {"title": col, "width": _JSPREADSHEET_COLUMN_WIDTHS.get(col, 150)} for col in columns
+    ]
+
+    result = _jspreadsheet_editor_component(
+        data=rows, columns=column_config, height=height, revision=revision, key=key, default=rows,
+    )
+    if not result:
+        return df.iloc[0:0].copy()
+
+    cleaned_rows = [row for row in result if any(str(cell).strip() for cell in row)]
+    result_df = pd.DataFrame(cleaned_rows, columns=columns)
+
+    # Remember this as "our own last echo" WITHOUT bumping the revision, so
+    # passing this same value back in next run (the normal case) doesn't
+    # cause a needless (and destructive) grid reload.
+    st.session_state[source_sig_key] = result_df.to_csv(index=False)
+    return result_df
+    
+
 # =====================================================================
 # ORDER-BUILDING ENGINE
 # =====================================================================
@@ -490,7 +696,12 @@ def process_and_add_hose(
 
 
 def generate_excel():
-    rows_for_excel = [r.copy() for r in st.session_state.output_rows]
+    # Bruker nå hjelpefunksjonen slik at vi får nøyaktig samme rader uansett om vi laster ned eller kopierer
+    rows_for_excel = get_excel_rows()
+
+    output_wb = core.create_output_workbook(
+        [[r[0], r[1], r[2], r[3]] for r in rows_for_excel]
+    )
 
     # Add ABS cert row (only once, always at the bottom)
     if st.session_state.abs_selected_any:
@@ -816,25 +1027,27 @@ def render_certificate_mode(df1, df2_all, get_cert_row):
         )
 
     uploaded_cert_file = st.file_uploader(
-        "Last opp utfylt MAL_Lim_inn_rader_for_Sertifikat.xlsx",
+        "Last opp utfylt MAL_Lim_inn_rader_for_Sertifikat.xlsx (eller lim inn data i tabellen under)",
         type=["xlsx"],
         key="cert_file_uploader",
     )
 
+    # Laster opp fil HVIS den finnes, ellers lager vi en tom tabell med riktig format
     if uploaded_cert_file is not None:
         try:
             st.session_state.cert_df = pd.read_excel(uploaded_cert_file)
         except Exception as e:
             st.error(f"Kunne ikke lese Excel: {e}")
             return
+    elif "cert_df" not in st.session_state:
+        st.session_state.cert_df = pd.DataFrame(columns=["Prod.no", "Beskrivelse", "Lager", "Antall"])
 
-    if "cert_df" not in st.session_state:
-        return
+    st.subheader("Importerte rader (Rediger eller lim inn fra Excel)")
 
-    df_editor = st.session_state.cert_df
-
-    st.subheader("Importerte rader")
-    st.dataframe(df_editor, use_container_width=True, hide_index=True)
+    # --- NY INPUT TABELL: samme jspreadsheet-widget som forhåndsvisningen ---
+    df_editor = jspreadsheet_editor(st.session_state.cert_df, key="cert_data_editor", height=380)
+    # Vi lagrer endringene tilbake i session_state
+    st.session_state.cert_df = df_editor
 
     st.divider()
     st.subheader("📋 Trykktest Detaljer")
@@ -847,6 +1060,11 @@ def render_certificate_mode(df1, df2_all, get_cert_row):
         hydra_ordre_nr = st.text_input("Hydra Pipe ordre nr.")
 
     if not st.button("📄 Generer Sertifikater", use_container_width=True):
+        return
+
+    # Sjekk at dataen er fylt ut
+    if "Prod.no" not in df_editor.columns:
+        st.error("Tabellen mangler 'Prod.no'-kolonnen.")
         return
 
     df_clean = df_editor.dropna(subset=["Prod.no"])
@@ -886,7 +1104,7 @@ def render_certificate_mode(df1, df2_all, get_cert_row):
 
     for idx, asm in enumerate(assemblies):
         h_pno = core.normalize_prod_no(asm["hose"]["Prod.no"])
-        h_match = df1[df1["Prod.no"].astype(str).str.strip() == h_pno]
+        h_match = df1[df1["Prod.no"].apply(core.normalize_prod_no) == h_pno]
 
         if h_match.empty:
             continue
@@ -910,24 +1128,41 @@ def render_certificate_mode(df1, df2_all, get_cert_row):
         except Exception:
             length_mm = 1000
 
-        # Find the (up to 2) coupling technical rows for the certificate
+        # Find the (up to 2) coupling technical rows for the certificate.
         c_tech_data = []
         for comp in asm["components"]:
             c_pno = core.normalize_prod_no(comp["Prod.no"])
             if c_pno in core.MONT_NUMBERS or c_pno.startswith("900"):
                 continue
+
+            tech_row = None
             for sheet in df2_all.values():
-                m = sheet[sheet["Prod.no"].astype(str).str.strip() == c_pno]
+                m = sheet[sheet["Prod.no"].apply(core.normalize_prod_no) == c_pno]
                 if not m.empty:
-                    c_tech_data.append(m.iloc[0].to_dict())
+                    tech_row = m.iloc[0].to_dict()
                     break
+
+            if tech_row is None:
+                continue
+
+            try:
+                comp_qty = float(str(comp.get("Antall", 1)).replace(",", "."))
+                per_hose_qty = round(comp_qty / real_antall) if real_antall else round(comp_qty)
+            except Exception:
+                per_hose_qty = 1
+
+            if per_hose_qty >= 2:
+                c_tech_data = [tech_row, tech_row]
+                break
+
+            c_tech_data.append(tech_row)
             if len(c_tech_data) >= 2:
                 break
 
         if len(c_tech_data) == 1:
             c_tech_data.append(None)
 
-        # Auto-detect stål/syrefast from Kupling 1 (the first coupling found)
+        # Auto-detect stål/syrefast from Kupling 1
         kupling1_desc = c_tech_data[0].get("Beskrivelse", "") if c_tech_data[0] else ""
         material = core.detect_material(kupling1_desc)
 
@@ -964,7 +1199,6 @@ def render_certificate_mode(df1, df2_all, get_cert_row):
             use_container_width=True,
         )
 
-
 # =====================================================================
 # EXCEL BATCH MODE
 # =====================================================================
@@ -981,20 +1215,23 @@ def render_excel_batch_mode(df1, df2_all, mont_df, trykktest_df, prikling_df, ge
         )
 
     uploaded_file = st.file_uploader(
-        "Last opp utfylt MAL_slangebeskrivelse_flere_rader.xlsx", type=["xlsx"]
+        "Last opp utfylt MAL_slangebeskrivelse_flere_rader.xlsx (eller lim inn data i tabellen under)", type=["xlsx"]
     )
 
-    if uploaded_file is None:
-        return
+    # Laster opp fil HVIS den finnes, ellers lager vi en tom tabell med riktig format
+    if uploaded_file is not None:
+        try:
+            import_df = pd.read_excel(uploaded_file)
+        except Exception as e:
+            st.error(f"Kunne ikke lese Excel: {e}")
+            return
+    else:
+        import_df = pd.DataFrame(columns=["Slangebeskrivelse", "Antall", "POS.nr", "Kundes delnummer", "Lager"])
 
-    try:
-        import_df = pd.read_excel(uploaded_file)
-    except Exception as e:
-        st.error(f"Kunne ikke lese Excel: {e}")
-        return
+    st.subheader("Importerte rader (Rediger eller lim inn fra Excel)")
 
-    st.subheader("Importerte rader")
-    st.dataframe(import_df, use_container_width=True)
+    # --- NY INPUT TABELL: samme jspreadsheet-widget som forhåndsvisningen ---
+    import_df = jspreadsheet_editor(import_df, key="batch_data_editor", height=380)
 
     st.divider()
 
@@ -1025,12 +1262,17 @@ def render_excel_batch_mode(df1, df2_all, mont_df, trykktest_df, prikling_df, ge
     if not st.button("⚙️ Generer Output", use_container_width=True):
         return
 
+    # Sjekk at man faktisk har fylt inn noe før man fortsetter
+    if import_df.dropna(how="all").empty:
+        st.warning("Tabellen er tom! Fyll inn eller lim inn slanger før du genererer output.")
+        return
+
     output_rows = []
     certificate_data_list = []
 
     for _, row in import_df.iterrows():
         summary_line = str(row.get("Slangebeskrivelse", "")).strip()
-        if summary_line == "":
+        if summary_line == "" or summary_line.lower() == "nan":
             continue
 
         antall = row.get("Antall", 1)
@@ -1053,9 +1295,9 @@ def render_excel_batch_mode(df1, df2_all, mont_df, trykktest_df, prikling_df, ge
 
         second_rows = [second_row1, second_row2]
 
-        if pos_nr:
+        if pos_nr and str(pos_nr).lower() != "nan":
             output_rows.append(["1", pos_nr, lager_nr, ""])
-        if kundes_del_nr:
+        if kundes_del_nr and str(kundes_del_nr).lower() != "nan":
             output_rows.append(["1", kundes_del_nr, lager_nr, ""])
 
         output_rows.append(["1", summary_line, lager_nr, 1])
@@ -1173,7 +1415,9 @@ def render_excel_batch_mode(df1, df2_all, mont_df, trykktest_df, prikling_df, ge
     wb.save(buffer)
     buffer.seek(0)
 
-    st.success(f"✅ {len(import_df)} slanger prosessert.")
+    # Viser antall rader som faktisk hadde innhold
+    processed_count = len(import_df.dropna(how='all'))
+    st.success(f"✅ {processed_count} slanger prosessert.")
     st.download_button(
         "📥 Last ned Output.xlsx",
         buffer,
@@ -1181,7 +1425,7 @@ def render_excel_batch_mode(df1, df2_all, mont_df, trykktest_df, prikling_df, ge
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         use_container_width=True,
     )
-
+    
 
 # =====================================================================
 # ORDER PREVIEW (common to Quick / Full / Excel batch)
@@ -1194,10 +1438,14 @@ def render_output_preview():
     if not st.session_state.output_rows:
         return
 
-    output_df = pd.DataFrame(
-        st.session_state.output_rows, columns=["Prod.no", "Beskrivelse", "Lager", "Antall"]
-    )
-    st.dataframe(output_df, use_container_width=True, hide_index=True)
+    # Hent rader og formater (Prod.no som int, Antall med komma)
+    excel_rows = get_excel_rows()
+    output_df = format_output_df(excel_rows)
+
+    st.caption("💡 **Ekte regneark:** Klikk og dra over cellene for å merke dem, og trykk **Ctrl + C** for å kopiere direkte til Visma/Excel.")
+
+    # Viser regnearket
+    render_jspreadsheet_preview(output_df)
 
     c1, c2, c3 = st.columns(3)
 
@@ -1225,6 +1473,7 @@ def render_output_preview():
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             use_container_width=True,
         )
+
 
 
 # =====================================================================
