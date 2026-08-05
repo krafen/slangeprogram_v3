@@ -21,26 +21,14 @@
 <body>
 <div id="spreadsheet"></div>
 <script>
-  // =====================================================================
-  // Minimal Streamlit Components wire-protocol shim (vanilla JS, no build
-  // step). This intentionally mirrors streamlit-component-lib's streamlit.ts
-  // message-for-message:
-  //   https://github.com/streamlit/streamlit/blob/develop/frontend/component-lib/src/streamlit.ts
-  // so it stays compatible with how Streamlit's frontend actually listens
-  // for and dispatches these postMessage events.
-  // =====================================================================
+  // Minimal Streamlit component shim
   const Streamlit = (() => {
     const RENDER_EVENT = "streamlit:render";
     let lastFrameHeight = null;
     const renderListeners = [];
-
     function sendBackMsg(type, data) {
-      window.parent.postMessage(
-        Object.assign({ isStreamlitMessage: true, type: type }, data || {}),
-        "*"
-      );
+      window.parent.postMessage(Object.assign({ isStreamlitMessage: true, type: type }, data || {}), "*");
     }
-
     function setComponentReady() {
       window.addEventListener("message", (event) => {
         const data = event.data;
@@ -51,71 +39,264 @@
       });
       sendBackMsg("streamlit:componentReady", { apiVersion: 1 });
     }
-
     function setFrameHeight(height) {
       const resolvedHeight = height === undefined ? document.body.scrollHeight : height;
-      if (resolvedHeight === lastFrameHeight) {
-        return;
-      }
+      if (resolvedHeight === lastFrameHeight) return;
       lastFrameHeight = resolvedHeight;
       sendBackMsg("streamlit:setFrameHeight", { height: resolvedHeight });
     }
-
     function setComponentValue(value) {
       sendBackMsg("streamlit:setComponentValue", { value: value, dataType: "json" });
     }
-
     function onRender(callback) {
       renderListeners.push(callback);
     }
-
     return { setComponentReady, setFrameHeight, setComponentValue, onRender };
   })();
 
-  // =====================================================================
-  // jspreadsheet-ce backed editable grid, bound bidirectionally to Python.
-  // =====================================================================
   let spreadsheetInstance = null;
-  let lastDataSignature = null;
+  let lastRevision = null;
 
   function sendValueToStreamlit() {
     if (!spreadsheetInstance) return;
     const currentData = spreadsheetInstance.getData();
-    lastDataSignature = JSON.stringify(currentData);
     Streamlit.setComponentValue(currentData);
     Streamlit.setFrameHeight();
   }
 
+  function ensureColumnsHaveType(columns) {
+    return columns.map(col => {
+      if (typeof col === 'string') return { title: col, type: 'text' };
+      const c = Object.assign({}, col);
+      if (!c.type) c.type = 'text';
+      return c;
+    });
+  }
+
+  // Plain text parsing: splits on \n then heuristically on \t / ; / , / 2+ spaces
+  function parsePlainText(text) {
+    if (text === null || text === undefined) return [];
+    const s = String(text).replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    const lines = s.split('\n').filter(line => line !== undefined);
+
+    // Find first non-empty line as sample
+    let sample = "";
+    for (let i = 0; i < lines.length; i++) {
+      if (lines[i].trim().length > 0) { sample = lines[i]; break; }
+    }
+
+    const counts = { tab: (sample.match(/\t/g) || []).length, semicolon: (sample.match(/;/g) || []).length, comma: (sample.match(/,/g) || []).length };
+    let delimiter = null;
+    if (counts.tab > 0) delimiter = '\t';
+    else if (counts.semicolon > 0 && counts.semicolon >= counts.comma) delimiter = ';';
+    else if (counts.comma > 0) delimiter = ',';
+
+    if (!delimiter) {
+      // fallback: try splitting on 2+ spaces (aligned columns)
+      const rows = lines.map(line => line.trim()).filter(line => line.length > 0).map(line => line.split(/\s{2,}/).map(cell => cell.replace(/\u00A0/g,' ').trim()));
+      return rows;
+    }
+
+    const rows = lines.map(line => line.split(delimiter).map(cell => cell.replace(/\u00A0/g,' ').trim()));
+    return rows.filter(r => r.length > 0);
+  }
+
+  function parseHtmlClipboard(htmlText) {
+    if (!htmlText) return null;
+    try {
+      let fragment = htmlText;
+      const startMarker = /<!--\s*StartFragment\s*-->/i;
+      const endMarker = /<!--\s*EndFragment\s*-->/i;
+      if (startMarker.test(htmlText) && endMarker.test(htmlText)) {
+        const parts = htmlText.split(startMarker);
+        if (parts.length > 1) fragment = parts[1].split(endMarker)[0];
+      }
+      const doc = new DOMParser().parseFromString(fragment, 'text/html');
+      const table = doc.querySelector('table');
+      if (table) {
+        const rows = Array.from(table.querySelectorAll('tr')).map(tr =>
+          Array.from(tr.querySelectorAll('td,th')).map(td => {
+            const clone = td.cloneNode(true);
+            clone.querySelectorAll('br').forEach(b => b.replaceWith('\n'));
+            return clone.textContent.replace(/\u00A0/g,' ').trim();
+          })
+        );
+        const nonEmpty = rows.filter(r => r.some(c => String(c).trim() !== ""));
+        if (nonEmpty.length) return nonEmpty;
+      }
+      const body = doc.body;
+      if (body) {
+        const cloneBody = body.cloneNode(true);
+        cloneBody.querySelectorAll('br').forEach(b => b.replaceWith('\n'));
+        const text = cloneBody.innerText || cloneBody.textContent || "";
+        const rows = parsePlainText(text);
+        if (rows && rows.length) return rows;
+      }
+    } catch (e) {
+      console.debug("parseHtmlClipboard failed", e);
+    }
+    return null;
+  }
+
+  function parseClipboardEvent(evt) {
+    try {
+      const cd = (evt && evt.clipboardData) ? evt.clipboardData : null;
+      if (!cd) return [];
+
+      // Debug: types and short previews
+      try {
+        const types = Array.from(cd.types || []);
+        const previewHtml = (cd.getData('text/html') || '').slice(0, 800);
+        const previewText = (cd.getData('text/plain') || '').slice(0, 800);
+        console.debug("Clipboard types:", types, "htmlPreview:", previewHtml.substring(0,200), "textPreview:", previewText.substring(0,200));
+      } catch (e) { console.debug("preview failed", e); }
+
+      // Prefer text/plain first (Chrome provides good tab/newline)
+      try {
+        const plain = cd.getData('text/plain');
+        if (plain) {
+          let parsed = parsePlainText(plain);
+          // Defensive: if parsed rows are single-cell strings containing tabs, split them
+          if (parsed && parsed.length && parsed.every(r => r.length === 1 && typeof r[0] === 'string' && r[0].indexOf('\t') !== -1)) {
+            parsed = parsed.map(r => r[0].split('\t').map(cell => cell.replace(/\u00A0/g,' ').trim()));
+            console.debug("Post-split on tabs produced shape:", parsed.length, "rows x cols sample:", parsed[0] ? parsed[0].length : 0);
+          }
+          if (parsed && parsed.length) return parsed;
+        }
+      } catch (e) { console.debug("getData('text/plain') threw", e); }
+
+      // Then try text/html
+      try {
+        const html = cd.getData('text/html');
+        if (html) {
+          const parsed = parseHtmlClipboard(html);
+          if (parsed && parsed.length) return parsed;
+        }
+      } catch (e) { console.debug("getData('text/html') threw", e); }
+
+      // Fallback through items (if browser exposes them)
+      try {
+        if (cd.items && cd.items.length) {
+          for (let i = 0; i < cd.items.length; i++) {
+            const it = cd.items[i];
+            if (it.type === 'text/plain' || it.type === 'text/html') {
+              try {
+                const v = cd.getData(it.type);
+                let parsed = it.type === 'text/html' ? parseHtmlClipboard(v) : parsePlainText(v);
+                if (parsed && parsed.length) {
+                  // same defensive split for plain
+                  if (it.type === 'text/plain' && parsed.every(r => r.length === 1 && typeof r[0] === 'string' && r[0].indexOf('\t') !== -1)) {
+                    parsed = parsed.map(r => r[0].split('\t').map(cell => cell.replace(/\u00A0/g,' ').trim()));
+                    console.debug("Post-split (items) on tabs produced shape:", parsed.length, parsed[0] ? parsed[0].length : 0);
+                  }
+                  return parsed;
+                }
+              } catch (e) {}
+            }
+          }
+        }
+      } catch (e) { console.debug("items read failed", e); }
+    } catch (outerErr) {
+      console.debug("parseClipboardEvent outerErr", outerErr);
+    }
+    return [];
+  }
+
+  function installPasteHandler(container) {
+    if (!container) return;
+    container.addEventListener('paste', function(e) {
+      if (!spreadsheetInstance) return;
+      e.preventDefault();
+      e.stopPropagation();
+
+      const rows = parseClipboardEvent(e);
+      console.debug("Parsed rows from clipboard (first 10):", rows && rows.length ? rows.slice(0,10) : rows);
+
+      if (!rows || !rows.length) return;
+
+      let currentCols = 0;
+      try {
+        const currentData = spreadsheetInstance.getData() || [];
+        if (currentData && currentData.length) currentCols = currentData[0].length;
+      } catch (err) { currentCols = 0; }
+      try {
+        if ((!currentCols || currentCols === 0) && spreadsheetInstance && spreadsheetInstance.options && spreadsheetInstance.options.columns) {
+          currentCols = spreadsheetInstance.options.columns.length || 0;
+        }
+      } catch (err) {}
+      if (!currentCols || currentCols === 0) currentCols = rows[0] ? rows[0].length : 0;
+
+      const paddedRows = rows.map(r => {
+        const newRow = Array.from(r);
+        if (newRow.length < currentCols) {
+          while (newRow.length < currentCols) newRow.push("");
+        }
+        return newRow;
+      });
+
+      try {
+        spreadsheetInstance.setData(paddedRows);
+        sendValueToStreamlit();
+      } catch (err) {
+        console.warn("setData failed - fallback building new data", err);
+        try {
+          const current = spreadsheetInstance.getData() || [];
+          const maxRows = Math.max(current.length, paddedRows.length);
+          const maxCols = Math.max((current[0] || []).length, paddedRows[0] ? paddedRows[0].length : 0);
+          const newData = [];
+          for (let r = 0; r < maxRows; r++) {
+            const row = [];
+            for (let c = 0; c < maxCols; c++) {
+              const v = (paddedRows[r] && paddedRows[r][c] !== undefined) ? paddedRows[r][c] : ((current[r] && current[r][c] !== undefined) ? current[r][c] : "");
+              row.push(v);
+            }
+            newData.push(row);
+          }
+          spreadsheetInstance.setData(newData);
+          sendValueToStreamlit();
+        } catch (err2) {
+          console.error("Fallback paste failed", err2);
+        }
+      }
+    }, true);
+  }
+
   function renderSpreadsheet(args) {
     const data = args.data || [];
-    const columns = args.columns || [];
+    const rawColumns = args.columns || [];
     const height = args.height || 400;
+    const revision = args.revision;
+    const defaultRows = args.default || null;
 
-    // Streamlit reruns the whole script (and re-sends this render event) on
-    // *any* widget interaction anywhere on the page, not just ones touching
-    // this component. Only rebuild the grid when the incoming data actually
-    // differs from what we last sent/received - otherwise we'd wipe out the
-    // user's current edit, cursor position, and scroll on every unrelated
-    // click elsewhere in the app.
-    const incomingSignature = JSON.stringify(data);
-    if (spreadsheetInstance && incomingSignature === lastDataSignature) {
-      return;
-    }
-    lastDataSignature = incomingSignature;
+    if (spreadsheetInstance && revision === lastRevision) { Streamlit.setFrameHeight(); return; }
+    lastRevision = revision;
 
     const container = document.getElementById("spreadsheet");
     container.innerHTML = "";
+
+    const columns = ensureColumnsHaveType(rawColumns);
+    const initialData = (Array.isArray(data) && data.length) ? data : (defaultRows ? defaultRows : [columns.map(() => "")]);
+
     spreadsheetInstance = jspreadsheet(container, {
-      data: data.length ? data : [columns.map(() => "")],
+      data: initialData,
       columns: columns,
       tableOverflow: true,
-      tableHeight: height + "px",
+      tableHeight: (height) + "px",
       tableWidth: "100%",
       allowInsertRow: true,
       allowDeleteRow: true,
-      allowInsertColumn: false,
+      allowInsertColumn: true,
       allowDeleteColumn: false,
       columnSorting: false,
+      parsePaste: function(clipboardText) {
+        try {
+          if (typeof clipboardText === 'string' && clipboardText.toLowerCase().indexOf('<table') !== -1) {
+            const parsed = parseHtmlClipboard(clipboardText);
+            if (parsed && parsed.length) return parsed;
+          }
+        } catch (e){}
+        return parsePlainText(clipboardText || "");
+      },
       onchange: sendValueToStreamlit,
       onafterchanges: sendValueToStreamlit,
       oninsertrow: sendValueToStreamlit,
@@ -123,11 +304,10 @@
       onmoverow: sendValueToStreamlit,
     });
 
-    Streamlit.setFrameHeight();
-    // Round-trip the initial grid back to Python immediately, so session
-    // state is consistent from the very first run, not just after the
-    // user's first edit.
+    installPasteHandler(container);
+
     sendValueToStreamlit();
+    Streamlit.setFrameHeight();
   }
 
   Streamlit.onRender(renderSpreadsheet);
