@@ -9,6 +9,7 @@ from pathlib import Path
 import pandas as pd
 import openpyxl
 import streamlit as st
+from st_aggrid import AgGrid, GridOptionsBuilder
 import html
 import streamlit.components.v1 as components
 
@@ -1230,7 +1231,15 @@ def render_excel_batch_mode(df1, df2_all, mont_df, trykktest_df, prikling_df, ge
     st.subheader("Importerte rader (Rediger eller lim inn fra Excel)")
 
     # --- NY INPUT TABELL: samme jspreadsheet-widget som forhåndsvisningen ---
-    import_df = jspreadsheet_editor(import_df, key="batch_data_editor", height=380)
+    # Keep the batch editor DataFrame in session_state so the component's revision/signature
+    # logic can detect local edits and not force a reload on every rerun.
+    if "batch_df" not in st.session_state:
+        # initial seed from uploaded/imported data for the editor
+        st.session_state.batch_df = import_df.copy()
+    # Pass the session-backed DataFrame into the editor and write edits back to session_state
+    st.session_state.batch_df = jspreadsheet_editor(st.session_state.batch_df, key="batch_data_editor", height=380)
+    # For backwards-compatibility with the rest of this function, keep a local reference
+    import_df = st.session_state.batch_df
 
     st.divider()
 
@@ -1257,6 +1266,140 @@ def render_excel_batch_mode(df1, df2_all, mont_df, trykktest_df, prikling_df, ge
             pressure_details["hydra_ordre_nr"] = st.text_input("Hydra Ordre.nr")
 
     st.divider()
+    
+    st.divider()
+    st.subheader("🔍 Forhåndsvis Output (Visma)")
+    
+    if st.button("🔍 Forhåndsvis Output", key="batch_preview_btn"):
+        # Build output rows exactly as the generate flow does, but do not write files
+        preview_output_rows = []
+        preview_certificate_data_list = []
+    
+        for _, row in import_df.iterrows():
+            summary_line = str(row.get("Slangebeskrivelse", "")).strip()
+            if summary_line == "" or summary_line.lower() == "nan":
+                continue
+    
+            antall = row.get("Antall", 1)
+            try:
+                antall = int(antall)
+            except Exception:
+                try:
+                    antall = int(float(str(antall).replace(",", ".")))
+                except Exception:
+                    antall = 1
+    
+            pos_nr = row.get("POS.nr", "")
+            kundes_del_nr = row.get("Kundes delnummer", "")
+            lager_nr = row.get("Lager", "")
+    
+            selected_row, second_row1, second_row2, sheet_name, size_str, length_int, material = (
+                core.find_matches_from_summary(summary_line, df1, df2_all)
+            )
+    
+            if selected_row is None:
+                st.warning(f"Fant ikke slange: {summary_line}")
+                continue
+    
+            second_rows = [second_row1, second_row2]
+    
+            if pos_nr and str(pos_nr).lower() != "nan":
+                preview_output_rows.append(["1", pos_nr, lager_nr, ""])
+            if kundes_del_nr and str(kundes_del_nr).lower() != "nan":
+                preview_output_rows.append(["1", kundes_del_nr, lager_nr, ""])
+    
+            preview_output_rows.append(["1", summary_line, lager_nr, 1])
+    
+            hose_qty = length_int / 1000 if length_int else 1
+            preview_output_rows.append([selected_row["Prod.no"], selected_row["Beskrivelse"], lager_nr, hose_qty])
+    
+            # Kupling 2 missing -> treat it as the same as Kupling 1.
+            if second_row1 is not None and second_row2 is None:
+                second_row2 = second_row1
+                second_rows = [second_row1, second_row2]
+    
+            same_coupling = (
+                second_row1 is not None
+                and second_row2 is not None
+                and str(second_row1.get("Prod.no", "")).strip() == str(second_row2.get("Prod.no", "")).strip()
+            )
+    
+            if same_coupling:
+                preview_output_rows.append([second_row1["Prod.no"], second_row1["Beskrivelse"], lager_nr, 2 * antall])
+            else:
+                for r in second_rows:
+                    if r is None:
+                        continue
+                    preview_output_rows.append([r["Prod.no"], r["Beskrivelse"], lager_nr, antall])
+    
+            gsm_count = sum(
+                1 for r in second_rows if r is not None and str(r.get("Beskrivelse", "")).startswith("GSM")
+            )
+    
+            if material == "stål":
+                mat_prod = selected_row.get("Stål hylse(Posd.no)", "")
+                mat_desc = selected_row.get("Stål hylse(beskrivelse)", "")
+            else:
+                mat_prod = selected_row.get("316 hylse(Posd.no)", "")
+                mat_desc = selected_row.get("316 hylse(beskrivelse)", "")
+    
+            sheet_key = core._extract_sheet_key_from_sheetname(sheet_name)
+            skip_staal_hylse = "(M-st)" in sheet_key or "(GSM)" in sheet_key
+    
+            if gsm_count < 2 and not skip_staal_hylse and mat_prod:
+                hylse_qty = 2 if gsm_count == 0 else 1
+                preview_output_rows.append([mat_prod, mat_desc, lager_nr, hylse_qty * antall])
+    
+            mont_row = core.get_mont_row(size_str, sheet_name, mont_df)
+            if mont_row is not None:
+                preview_output_rows.append([mont_row["Prod.no"], mont_row["Beskrivelse"], lager_nr, antall])
+    
+            # Prikling / trykktest / DNV handled only if those options are set in the UI.
+            # For preview we use the current checkboxes in the batch UI: add_prikling, add_trykktest, add_dnv (already available)
+            if add_trykktest:
+                tryck_row = core.get_trykktest_prodno(size_str, length_int, trykktest_df)
+                if tryck_row is not None:
+                    preview_output_rows.append([tryck_row["Prod.no"], tryck_row["Beskrivelse"], lager_nr, antall])
+    
+            if add_prikling:
+                prikling_row = core.get_prikling_row(size_str, prikling_df)
+                if prikling_row is not None:
+                    preview_output_rows.append([prikling_row["Prod.no"], prikling_row["Beskrivelse"], lager_nr, antall])
+    
+            if add_dnv:
+                dnv_cert_row = get_cert_row("90003")
+                if dnv_cert_row is not None:
+                    preview_output_rows.append(
+                        [dnv_cert_row.get("Prod.no", ""), dnv_cert_row.get("Beskrivelse", ""), lager_nr, antall]
+                    )
+    
+            preview_output_rows.append([1, "", lager_nr, ""])
+    
+        if not preview_output_rows:
+            st.warning("Ingen rader generert for forhåndsvisning.")
+        else:
+            # If ABS/DNV cert options are present, show that last rows would be appended (optional)
+            last_lager = preview_output_rows[-1][2] if preview_output_rows else ""
+            if add_abs:
+                abs_cert_row = get_cert_row("90478")
+                if abs_cert_row is not None:
+                    preview_output_rows.append(["1", "", last_lager, ""])
+                    preview_output_rows.append(
+                        [abs_cert_row.get("Prod.no", ""), abs_cert_row.get("Beskrivelse", ""), last_lager, 1]
+                    )
+            if add_dnv:
+                dnv_cert_row = get_cert_row("90003")
+                if dnv_cert_row is not None:
+                    preview_output_rows.append(["1", "", last_lager, ""])
+                    preview_output_rows.append(
+                        [dnv_cert_row.get("Prod.no", ""), dnv_cert_row.get("Beskrivelse", ""), last_lager, 1]
+                    )
+    
+            # Format and render the exact same jspreadsheet preview as Quick/Full
+            preview_df = format_output_df(preview_output_rows)
+            render_jspreadsheet_preview(preview_df)
+    
+    
 
     if not st.button("⚙️ Generer Output", use_container_width=True):
         return
@@ -1432,7 +1575,10 @@ def render_excel_batch_mode(df1, df2_all, mont_df, trykktest_df, prikling_df, ge
 
 def render_output_preview():
     st.divider()
-    st.header("📊 Foreløpig slangestruktur i Visma")
+    if st.session_state.input_mode == "quick":
+        st.header("📊 Foreløpig slangestruktur i Visma")
+    elif st.session_state.input_mode == "full":
+        st.header("📊 Foreløpig slangestruktur i Visma")
 
     if not st.session_state.output_rows:
         return
@@ -1523,8 +1669,9 @@ def main():
     st.session_state.input_mode = LABEL_TO_MODE[mode_choice]
     if st.session_state.input_mode != "certificate":
         st.session_state.pop("cert_df", None)
-
-    st.divider()
+    if st.session_state.input_mode != "excel_batch":
+        st.session_state.pop("batch_df", None)
+        st.divider()
 
     mode = st.session_state.input_mode
 
