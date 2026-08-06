@@ -16,10 +16,59 @@
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
     border-radius: 4px;
   }
+
+  /* Modal styles for paste fallback */
+  #paste-modal {
+    display: none;
+    position: fixed;
+    z-index: 99999;
+    left: 0; top: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.45);
+    align-items: center;
+    justify-content: center;
+  }
+  #paste-modal .modal-inner {
+    background: white;
+    padding: 16px;
+    border-radius: 8px;
+    width: min(820px, 92%);
+    max-height: 80vh;
+    overflow: auto;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.35);
+  }
+  #paste-modal h3 { margin: 0 0 8px 0; font-size: 1.05rem; }
+  #paste-modal p { margin: 0 0 12px 0; color: #333; }
+  #paste-modal .catcher {
+    min-height: 160px;
+    border: 1px dashed #cbd5e1;
+    padding: 8px;
+    border-radius: 6px;
+    background: #fafafa;
+    outline: none;
+    white-space: pre-wrap;
+  }
+  #paste-modal .buttons { margin-top:12px; display:flex; gap:8px; justify-content:flex-end; }
+  .btn { padding: 8px 12px; border-radius:6px; border: none; cursor: pointer; font-weight:600; }
+  .btn-primary { background:#0F6E5B; color:white; }
+  .btn-ghost { background:transparent; border:1px solid #cbd5e1; color:#111; }
 </style>
 </head>
 <body>
 <div id="spreadsheet"></div>
+
+<!-- Modal used as visible fallback for paste -->
+<div id="paste-modal" role="dialog" aria-modal="true">
+  <div class="modal-inner">
+    <h3>Paste (inneholder flere celler)</h3>
+    <p>Lim inn (Ctrl+V / ⌘+V) i boksen under og trykk «Use pasted content». Dette er en fallback som garantert fungerer i alle nettlesere.</p>
+    <div id="paste-modal-catcher" class="catcher" contenteditable="true" spellcheck="false" aria-label="Paste area"></div>
+    <div class="buttons">
+      <button id="paste-modal-cancel" class="btn btn-ghost">Cancel</button>
+      <button id="paste-modal-ok" class="btn btn-primary">Use pasted content</button>
+    </div>
+  </div>
+</div>
+
 <script>
   // Minimal Streamlit component shim
   const Streamlit = (() => {
@@ -73,30 +122,24 @@
     });
   }
 
-  // Plain text parsing: splits on \n then heuristically on \t / ; / , / 2+ spaces
+  // Parsing utilities (same robust parsing as before)
   function parsePlainText(text) {
     if (text === null || text === undefined) return [];
     const s = String(text).replace(/\r\n/g, '\n').replace(/\r/g, '\n');
     const lines = s.split('\n').filter(line => line !== undefined);
-
-    // Find first non-empty line as sample
     let sample = "";
     for (let i = 0; i < lines.length; i++) {
       if (lines[i].trim().length > 0) { sample = lines[i]; break; }
     }
-
     const counts = { tab: (sample.match(/\t/g) || []).length, semicolon: (sample.match(/;/g) || []).length, comma: (sample.match(/,/g) || []).length };
     let delimiter = null;
     if (counts.tab > 0) delimiter = '\t';
     else if (counts.semicolon > 0 && counts.semicolon >= counts.comma) delimiter = ';';
     else if (counts.comma > 0) delimiter = ',';
-
     if (!delimiter) {
-      // fallback: try splitting on 2+ spaces (aligned columns)
       const rows = lines.map(line => line.trim()).filter(line => line.length > 0).map(line => line.split(/\s{2,}/).map(cell => cell.replace(/\u00A0/g,' ').trim()));
       return rows;
     }
-
     const rows = lines.map(line => line.split(delimiter).map(cell => cell.replace(/\u00A0/g,' ').trim()));
     return rows.filter(r => r.length > 0);
   }
@@ -112,7 +155,7 @@
         if (parts.length > 1) fragment = parts[1].split(endMarker)[0];
       }
       const doc = new DOMParser().parseFromString(fragment, 'text/html');
-      const table = doc.querySelector('table');
+      let table = doc.querySelector('table');
       if (table) {
         const rows = Array.from(table.querySelectorAll('tr')).map(tr =>
           Array.from(tr.querySelectorAll('td,th')).map(td => {
@@ -132,9 +175,7 @@
         const rows = parsePlainText(text);
         if (rows && rows.length) return rows;
       }
-    } catch (e) {
-      console.debug("parseHtmlClipboard failed", e);
-    }
+    } catch (e) { console.debug("parseHtmlClipboard failed", e); }
     return null;
   }
 
@@ -142,8 +183,6 @@
     try {
       const cd = (evt && evt.clipboardData) ? evt.clipboardData : null;
       if (!cd) return [];
-
-      // Debug: types and short previews
       try {
         const types = Array.from(cd.types || []);
         const previewHtml = (cd.getData('text/html') || '').slice(0, 800);
@@ -151,21 +190,18 @@
         console.debug("Clipboard types:", types, "htmlPreview:", previewHtml.substring(0,200), "textPreview:", previewText.substring(0,200));
       } catch (e) { console.debug("preview failed", e); }
 
-      // Prefer text/plain first (Chrome provides good tab/newline)
       try {
         const plain = cd.getData('text/plain');
         if (plain) {
           let parsed = parsePlainText(plain);
-          // Defensive: if parsed rows are single-cell strings containing tabs, split them
           if (parsed && parsed.length && parsed.every(r => r.length === 1 && typeof r[0] === 'string' && r[0].indexOf('\t') !== -1)) {
             parsed = parsed.map(r => r[0].split('\t').map(cell => cell.replace(/\u00A0/g,' ').trim()));
-            console.debug("Post-split on tabs produced shape:", parsed.length, "rows x cols sample:", parsed[0] ? parsed[0].length : 0);
+            console.debug("Post-split on tabs produced shape:", parsed.length, parsed[0] ? parsed[0].length : 0);
           }
           if (parsed && parsed.length) return parsed;
         }
       } catch (e) { console.debug("getData('text/plain') threw", e); }
 
-      // Then try text/html
       try {
         const html = cd.getData('text/html');
         if (html) {
@@ -174,7 +210,6 @@
         }
       } catch (e) { console.debug("getData('text/html') threw", e); }
 
-      // Fallback through items (if browser exposes them)
       try {
         if (cd.items && cd.items.length) {
           for (let i = 0; i < cd.items.length; i++) {
@@ -182,38 +217,95 @@
             if (it.type === 'text/plain' || it.type === 'text/html') {
               try {
                 const v = cd.getData(it.type);
-                let parsed = it.type === 'text/html' ? parseHtmlClipboard(v) : parsePlainText(v);
-                if (parsed && parsed.length) {
-                  // same defensive split for plain
-                  if (it.type === 'text/plain' && parsed.every(r => r.length === 1 && typeof r[0] === 'string' && r[0].indexOf('\t') !== -1)) {
-                    parsed = parsed.map(r => r[0].split('\t').map(cell => cell.replace(/\u00A0/g,' ').trim()));
-                    console.debug("Post-split (items) on tabs produced shape:", parsed.length, parsed[0] ? parsed[0].length : 0);
-                  }
-                  return parsed;
-                }
+                const parsed = it.type === 'text/html' ? parseHtmlClipboard(v) : parsePlainText(v);
+                if (parsed && parsed.length) return parsed;
               } catch (e) {}
             }
           }
         }
       } catch (e) { console.debug("items read failed", e); }
-    } catch (outerErr) {
-      console.debug("parseClipboardEvent outerErr", outerErr);
-    }
+    } catch (outerErr) { console.debug("parseClipboardEvent outerErr", outerErr); }
     return [];
   }
 
+  // navigator.clipboard fallback
+  async function readClipboardViaNavigator() {
+    try {
+      if (navigator.clipboard && navigator.clipboard.read) {
+        const items = await navigator.clipboard.read();
+        for (const item of items) {
+          if (item.types.includes('text/html')) {
+            const blob = await item.getType('text/html');
+            const html = await blob.text();
+            const parsed = parseHtmlClipboard(html);
+            if (parsed && parsed.length) return parsed;
+          }
+          if (item.types.includes('text/plain')) {
+            const blob = await item.getType('text/plain');
+            const txt = await blob.text();
+            const parsed = parsePlainText(txt);
+            if (parsed && parsed.length) return parsed;
+          }
+        }
+      }
+    } catch (e) { console.debug("navigator.clipboard.read() failed", e); }
+    try {
+      if (navigator.clipboard && navigator.clipboard.readText) {
+        const txt = await navigator.clipboard.readText();
+        const parsed = parsePlainText(txt);
+        if (parsed && parsed.length) return parsed;
+      }
+    } catch (e) { console.debug("navigator.clipboard.readText() failed", e); }
+    return [];
+  }
+
+  // Modal dialog fallback: show modal, focus contenteditable, user pastes and clicks Use pasted content
   function installPasteHandler(container) {
-    if (!container) return;
-    container.addEventListener('paste', function(e) {
-      if (!spreadsheetInstance) return;
-      e.preventDefault();
-      e.stopPropagation();
+  if (!container) return;
 
-      const rows = parseClipboardEvent(e);
-      console.debug("Parsed rows from clipboard (first 10):", rows && rows.length ? rows.slice(0,10) : rows);
+  // Single unified paste handler (we'll attach it to multiple targets)
+  async function handlePasteEvent(e) {
+    try {
+      console.debug("paste event received; target:", e.target, "event:", e);
+      // Prevent default only for events originating from the component container
+      // but allow other targets to behave normally.
+      if (container.contains(e.target) || e.target === container) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
 
-      if (!rows || !rows.length) return;
+      // 1) Try parse from event.clipboardData (if present)
+      let rows = parseClipboardEvent(e);
+      console.debug("Parsed rows from paste event:", rows && rows.length ? rows.slice(0,8) : rows);
 
+      // 2) If nothing, try navigator.clipboard.read() (async)
+      if ((!rows || !rows.length) && navigator.clipboard) {
+        try {
+          const navRows = await readClipboardViaNavigator();
+          if (navRows && navRows.length) {
+            rows = navRows;
+            console.debug("Parsed rows from navigator.clipboard:", rows && rows.length ? rows.slice(0,8) : rows);
+          }
+        } catch (navErr) {
+          console.debug("navigator.clipboard read failed in paste handler", navErr);
+        }
+      }
+
+      // 3) If still empty, show visible modal fallback
+      if ((!rows || !rows.length)) {
+        const modalRows = await showPasteModalAndWait();
+        if (modalRows && modalRows.length) {
+          rows = modalRows;
+          console.debug("Parsed rows from modal:", rows && rows.length ? rows.slice(0,8) : rows);
+        }
+      }
+
+      if (!rows || !rows.length) {
+        console.debug("No rows parsed after paste event + fallbacks.");
+        return;
+      }
+
+      // Ensure table columns won't collapse into a single column
       let currentCols = 0;
       try {
         const currentData = spreadsheetInstance.getData() || [];
@@ -238,7 +330,7 @@
         spreadsheetInstance.setData(paddedRows);
         sendValueToStreamlit();
       } catch (err) {
-        console.warn("setData failed - fallback building new data", err);
+        console.warn("setData failed - fallback building newData", err);
         try {
           const current = spreadsheetInstance.getData() || [];
           const maxRows = Math.max(current.length, paddedRows.length);
@@ -258,9 +350,64 @@
           console.error("Fallback paste failed", err2);
         }
       }
-    }, true);
+    } catch (outer) {
+      console.error("handlePasteEvent outer error", outer);
+    }
   }
 
+  // Attach to the component container (capture phase), plus document and window to catch cases where target differs
+  container.addEventListener('paste', handlePasteEvent, true);
+  document.addEventListener('paste', handlePasteEvent, true);
+  window.addEventListener('paste', handlePasteEvent, true);
+
+  // Keydown fallback: if Ctrl/Cmd+V is pressed and paste events are being swallowed,
+  // attempt an explicit navigator.clipboard.readText() and parse it.
+  // This does NOT prevent default - it only triggers a parse attempt in addition.
+  document.addEventListener('keydown', async function (ev) {
+    try {
+      if ((ev.ctrlKey || ev.metaKey) && (ev.key === 'v' || ev.key === 'V')) {
+        console.debug("keydown paste detected (Ctrl/Cmd+V)");
+        if (!spreadsheetInstance) return;
+        // Attempt to read clipboard text (user gesture)
+        try {
+          if (navigator.clipboard && navigator.clipboard.readText) {
+            const txt = await navigator.clipboard.readText();
+            console.debug("navigator.clipboard.readText() yielded text length", (txt || '').length);
+            let rows = parsePlainText(txt);
+            // Defensive split if single column containing tabs
+            if (rows && rows.length && rows.every(r => r.length === 1 && typeof r[0] === 'string' && r[0].indexOf('\t') !== -1)) {
+              rows = rows.map(r => r[0].split('\t').map(cell => cell.replace(/\u00A0/g,' ').trim()));
+              console.debug("Post-split on tabs (keydown fallback) shape:", rows.length, rows[0] ? rows[0].length : 0);
+            }
+            if (rows && rows.length) {
+              // pad & set like above
+              let currentCols = 0;
+              try {
+                const currentData = spreadsheetInstance.getData() || [];
+                if (currentData && currentData.length) currentCols = currentData[0].length;
+              } catch (err) { currentCols = 0; }
+              if (!currentCols || currentCols === 0) currentCols = rows[0] ? rows[0].length : 0;
+              const paddedRows = rows.map(r => {
+                const newRow = Array.from(r);
+                if (newRow.length < currentCols) while (newRow.length < currentCols) newRow.push("");
+                return newRow;
+              });
+              spreadsheetInstance.setData(paddedRows);
+              sendValueToStreamlit();
+              return;
+            }
+          }
+        } catch (err) {
+          console.debug("keydown clipboard.readText() failed", err);
+        }
+      }
+    } catch (err) {
+      console.debug("keydown paste fallback outer error", err);
+    }
+  }, true);
+}
+
+  // Main renderer called by Streamlit
   function renderSpreadsheet(args) {
     const data = args.data || [];
     const rawColumns = args.columns || [];
@@ -268,7 +415,10 @@
     const revision = args.revision;
     const defaultRows = args.default || null;
 
-    if (spreadsheetInstance && revision === lastRevision) { Streamlit.setFrameHeight(); return; }
+    if (spreadsheetInstance && revision === lastRevision) {
+      Streamlit.setFrameHeight();
+      return;
+    }
     lastRevision = revision;
 
     const container = document.getElementById("spreadsheet");
@@ -306,6 +456,7 @@
 
     installPasteHandler(container);
 
+    // initial round-trip
     sendValueToStreamlit();
     Streamlit.setFrameHeight();
   }
